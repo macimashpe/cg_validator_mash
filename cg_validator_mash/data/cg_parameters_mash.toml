@@ -1,0 +1,55 @@
+# =============================================================================
+# User settable parameters
+# =============================================================================
+
+[payload]
+
+# weight of payload, currently an arbitrary number, max 250 [kg]
+"weight" = 150
+
+# payload center of gravity, [mm]
+# origin of coordinate system: on the floor, midpoint between the two drive wheels
+# x axis is defined as transverse, orthogonal to direction of forward motion
+# y axis is direction of forward motion
+# z axis is height direction
+[payload.cg]
+"x" = 0
+"y" = 0
+"z" = 0
+
+[platform]
+# valid options: LD, MD(planned), HD(planned)
+"type" = "LD"
+
+
+[misc]
+
+# coefficient of friction between wheel and ground surface
+"coef_friction" = 0.5
+
+[misc.max_velocity]
+"translational" = 0
+"rotational" = 0
+
+[misc.max_acceleration]
+"translational" = 0
+"rotational" = 0
+
+[misc.max_deceleration]
+"translational" = 0
+"rotational" = 0
+
+# =============================================================================
+# Other config parameters (not user settable)
+# =============================================================================
+
+# dimensions taken from "LD-250 - Mechanical and Electrical Guidelines - Rev2.pptx"
+[LD.dimensions]
+# length, from front to back [mm]
+"length" = 969
+# width, from drive wheel to drive wheel, including light discs [mm]
+"width" = 721
+# height, from floor to cover plate [mm]
+"height" = 382
+# mass, in kg
+"mass" = 142

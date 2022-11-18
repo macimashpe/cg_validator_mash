@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "cg-validator-mash"
+version = "0.1.0"
+description = ""
+authors = ["Maci Miri <maci@mashpe.net>"]
+readme = "README.md"
+packages = [{include = "cg_validator_mash"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
