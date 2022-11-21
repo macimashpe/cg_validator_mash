@@ -60,11 +60,11 @@
 # mass, in kg
 "mass" = 142
 # all below pysical definitions are taken from karthick's code (...DO_NOT_DELETE.py)
-"caster_swivel" = 32		#(mm)
-"platform_cg_x" = 0			#(mm)
-"platform_cg_y" = -44.9		#-24.4;    %(mm)
-"platform_cg_z" = 178.3		#127.8;    %(mm)
-"platform_mass" = 142			#(kg)
+"caster_swivel" = 32		# [mm]
+"platform_cg_x" = 0			# [mm]
+"platform_cg_y" = -44.9		# [mm]
+"platform_cg_z" = 178.3		# [mm]
+"platform_mass" = 142			# [kg]
 "front_caster_x" = 232.5			#(mm) x-coordinate of the Swivel point of front caster   
 "front_caster_y" = 285			#(mm) y-coordinate of the Swivel point of front caster  
 # "front_caster_y_minus" = front_caster_y-caster_swivel		#(mm) wheel behind the caster mounting point (moving forward)

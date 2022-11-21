@@ -19,10 +19,9 @@ if __name__ == "__main__":
     cfg_file_path = pathlib.Path(__file__).parent / 'data/cg_parameters_mash.toml'
     with open(cfg_file_path) as cfg_file:
         cfg_data = toml.load(cfg_file)
-        logger.debug(f'loaded toml cfg file successfully : {str(cfg_file_path)}')
+        logger.debug(f'loaded toml cg cfg file successfully : {str(cfg_file_path)}')
 
     # Get/calculate all necessary variables
-
     # need m_fsp2, m_w2, ld250_m, load_m, phi, and CG Z height to calc max_accel
     platform = cfg_data['platform']['type']
     caster_swivel = cfg_data[platform]['dimensions']['caster_swivel']
@@ -59,12 +58,12 @@ if __name__ == "__main__":
 
 
 
-    # calc combined cg (platform and payload)
+    # calc combined cg (platform and payload, rigid bodies)
     combined_cg_x = ((platform_mass*platform_cg_x)+(payload_mass*payload_cg_x))/(platform_mass+payload_mass)
     combined_cg_y = ((platform_mass*platform_cg_y)+(payload_mass*payload_cg_y))/(platform_mass+payload_mass)
     combined_cg_z = ((platform_mass*platform_cg_z)+(payload_mass*payload_cg_z))/(platform_mass+payload_mass)
 
-    # calc accel_max
+    # calc accel_max. These equations described in Onenote
     # calc m_fsp2 (spring_force_moment_2)
     spring_force = (87+4.364*(150.7-120.7-2.7))*280/160	# new spring N
     spring_force_moment_2_right = -spring_force*(rear_caster_y_plus-drive_wheel_y) #  [N-mm], moment about front casters due to combines weight of cart and payload that is normal to the inclined plane
@@ -75,7 +74,7 @@ if __name__ == "__main__":
     # calc accel_max [mm/s^2]
     accel_max = -(spring_force_moment_2+weight_moment_2)/((platform_mass+payload_mass)*(combined_cg_z))-(9810*math.sin(phi))
 
-    # calc max_decel [mm/s^2]. moment about front casters due to the drive wheel spring for decel going down an incline:
+    # calc max_decel [mm/s^2]. These equations described in Onenote. Moment about front casters due to the drive wheel spring for decel going down an incline:
     # calc m_fsp1 (spring force moment 2)
     spring_force_moment_1_right = -spring_force*(front_caster_y_minus-drive_wheel_y) # N-mm
     spring_force_moment_1 = 2*spring_force_moment_1_right # N-mm
@@ -84,15 +83,13 @@ if __name__ == "__main__":
     # calc decel_max
     decel_max =  (spring_force_moment_1+weight_moment_1)/((platform_mass+payload_mass)*(combined_cg_z))-(9810*math.sin(phi))
 
-    # calc velocity_max
-
     logger.debug(f'accel_max: {accel_max}')
     logger.debug(f'decel_max: {decel_max}')
     pass
 
 
 def iterate_all_payload_positions():
-    # NOT CURRENTLY USED
+    # NOT CURRENTLY USED, just experimenting for further applications
     # go through all x, y, z locations, calculate viability
     x_vals = range(-480, 490, 10)  # width (transverse) of LD, in 10 mm increments
     y_vals = range(0, 328, 10)  # length (longitudinal) of LD, in 10mm increments
