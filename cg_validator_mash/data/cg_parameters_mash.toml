@@ -87,13 +87,12 @@
 # Fc1 and Fc2 is allocated based on the Fdz1 and Fdz1, assuming Fc1 is propotional to Fdz1. So Fc1 = Fc * Fdz1 / (Fdz1 + Fdz2) and Fc2 = Fc * Fdz2 / (Fdz1 + Fdz2)
 # cols: 	Frz1	Frf1	Frz2	Frf2	Fdz1	Fdf1	Fdt1	Fdz2	Fdf2	Fdt2	Fc	Ffz1	Fff1	Ffz2	Fff2	Equals
 # rows: X, Y, Z, Rx, Ry, Rz, -, RkF1, RkF2, Rkr, -, -, -, -, -, -
-md_2fr_1rr_nd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', 'M*(ax*(R-y)/R-w^2*x)+M*g*sin(theta)'],
+md_2frkr_1rrkr_normal_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', 'M*(ax*(R-y)/R-w^2*x)+M*g*sin(theta)'],
 ['0', 'sin(Br1)', '0', 'sin(Br2)', '0', '0', '0', '0', '0', '0', '1', '0', '-sin(Bf1)', '0', '	-sin(Bf2)', 'M*(w^2*(R-y)+ax*x/R)'],
 ['1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '0', '1', '0', '1', '0', 'M*g*cos(theta)'],
 ['-(Dc-r*sin(Br1)+y)', 'sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', 'h', '-(Dc+r*sin(Bf1)+y)', '-sin(Bf1)*h', 'Dc-sin(Bf2)*r-y', '-sin(Bf2)*h', '0'],
 ['L+r*cos(Br1)+x', 'cos(Br1)*h', 'L+r*cos(Br2)+x', 'cos(Br2)*h', 'x', 'h', '-h', 'x', 'h', '-h', '0', '-(L-r*cos(Bf1)-x)', 'cos(Bf1)*h', '-(L-r*cos(Bf2)-x)', 'cos(Bf2)*h', '0'],
-['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)', 'Jz*ax/R'],
-['0', '-sin(Br1)*(L+cos(Br1)*r+x)', '0', '-sin(Br2)*(L+cos(Br2)*r+x)', '0', '0', '0', '0', '0', '0', '0', '0', '-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', '-sin(Bf2)*(L-cos(Bf2)*r-x)', '0'],
+['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)-sin(Br1)*(L+cos(Br1)*r+x)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)-sin(Br2)*(L+cos(Br2)*r+x)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)-sin(Bf2)*(L-cos(Bf2)*r-x)', 'Jz*ax/R'],
 ['0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '0', '-(l2-r*cos(Bf1))', 'cos(Bf1)*h1', '0', '0', '0'],
 ['0', '0', '0', '0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '-(l2-r*cos(Bf2))', 'cos(Bf2)*h1', '0'],
 ['-(Dc-r*sin(Br1))', 'sin(Br1)*h2', 'Dc+r*sin(Br2)', 'sin(Br2)*h2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
@@ -111,13 +110,12 @@ md_2fr_1rr_nd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1',
 # u*Fdz1 should equal the vector sum of Fdt1 and Fc1, but because coupling Fc1 will become nonlinear so we assume 0.95*u*Fdz1 = Fdt1. This 0.95 is from taking the cos(angle) = 0.95, and this angle meets tan(angle) = Fc / Fdt ~= ac / ax ~= 1/3
 # cols:	Frz1	Frf1	Frz2	Frf2	Fdz1	Fdf1	Fdt1	Fdz2	Fdf2	Fdt2	Fc	Ffz1	Fff1	Ffz2	Fff2	ax	ay	alphaZ	Equals
 # rows: X, Y, Z, Rx, Ry, Rz, -, RkF1, RkF2, Rkr, -, -, -, -, -, -, -, -, -
-md_2fr_1rr_bd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', '-M', '0', '0', 'M*g*sin(theta)'],
+md_2frkr_1rrkr_brake_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', '-M', '0', '0', 'M*g*sin(theta)'],
 ['0', 'sin(Br1)', '0', 'sin(Br2)', '0', '0', '0', '0', '0', '0', '1', '0', '-sin(Bf1)', '0 ', '-sin(Bf2)', '0', '-M', '0', '0'],
 ['1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '0', '1', '0', '1', '0', '0', '0', '0', 'M*g*cos(theta)'],
 ['-(Dc-r*sin(Br1)+y)', 'sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', 'h', '-(Dc+r*sin(Bf1)+y)', '-sin(Bf1)*h', 'Dc-sin(Bf2)*r-y', '-sin(Bf2)*h', '0', '0', '0', '0'],
 ['L+r*cos(Br1)+x', 'cos(Br1)*h', 'L+r*cos(Br2)+x', 'cos(Br2)*h', 'x', 'h', '-h', 'x', 'h', '-h', '0', '-(L-r*cos(Bf1)-x)', 'cos(Bf1)*h', '-(L-r*cos(Bf2)-x)', 'cos(Bf2)*h', '0', '0', '0', '0'],
-['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)', '0', '0', '-Jz', '0'],
-['0', '-sin(Br1)*(L+cos(Br1)*r+x)', '0', '-sin(Br2)*(L+cos(Br2)*r+x)', '0', '0', '0', '0', '0', '0', '0', '0', '-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', '-sin(Bf2)*(L-cos(Bf2)*r-x)', '0', '0', '0', '0'],
+['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)-sin(Br1)*(L+cos(Br1)*r+x)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)-sin(Br2)*(L+cos(Br2)*r+x)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)-sin(Bf2)*(L-cos(Bf2)*r-x)', '0', '0', '-Jz', '0'],
 ['0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '0', '-(l2-r*cos(Bf1))', 'cos(Bf1)*h1', '0', '0', '0', '0', '0', '0'],
 ['0', '0', '0', '0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '-(l2-r*cos(Bf2))', 'cos(Bf2)*h1', '0', '0', '0', '0'],
 ['-(Dc-r*sin(Br1))', 'sin(Br1)*h2', 'Dc+r*sin(Br2)', 'sin(Br2)*h2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
@@ -137,13 +135,12 @@ md_2fr_1rr_bd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1',
 # when braking locked model has Fdt1 and Fdt2 > maxFdt, then use this matirx
 # cols:	Frz1	Frf1	Frz2	Frf2	Fdz1	Fdf1	Fdt1	Fdz2	Fdf2	Fdt2	Fc	Ffz1	Fff1	Ffz2	Fff2	ax	ay	alphaZ	Equals
 # rows: X, Y, Z, Rx, Ry, Rz, -, RkF1, RkF2, -, -, -, -, -, -, -, -, -
-md_2fr_1rr_mbd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', '-M', '0', '0', 'M*g*sin(theta)'],
+md_2frkr_1rrkr_unlocked_brake_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', '-M', '0', '0', 'M*g*sin(theta)'],
 ['0', 'sin(Br1)', '0', 'sin(Br2)', '0', '0', '0', '0', '0', '0', '1', '0', '-sin(Bf1)', '0 ', '-sin(Bf2)', '0', '-M', '0', '0'],
 ['1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '0', '1', '0', '1', '0', '0', '0', '0', 'M*g*cos(theta)'],
 ['-(Dc-r*sin(Br1)+y)', 'sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', 'h', '-(Dc+r*sin(Bf1)+y)', '-sin(Bf1)*h', 'Dc-sin(Bf2)*r-y', '-sin(Bf2)*h', '0', '0', '0', '0'],
 ['L+r*cos(Br1)+x', 'cos(Br1)*h', 'L+r*cos(Br2)+x', 'cos(Br2)*h', 'x', 'h', '-h', 'x', 'h', '-h', '0', '-(L-r*cos(Bf1)-x)', 'cos(Bf1)*h', '-(L-r*cos(Bf2)-x)', 'cos(Bf2)*h', '0', '0', '0', '0'],
-['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)', '0', '0', '-Jz', '0'],
-['0', '-sin(Br1)*(L+cos(Br1)*r+x)', '0', '-sin(Br2)*(L+cos(Br2)*r+x)', '0', '0', '0', '0', '0', '0', '0', '0', '-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', '-sin(Bf2)*(L-cos(Bf2)*r-x)', '0', '0', '0', '0'],
+['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)-sin(Br1)*(L+cos(Br1)*r+x)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)-sin(Br2)*(L+cos(Br2)*r+x)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)-sin(Bf2)*(L-cos(Bf2)*r-x)', '0', '0', '-Jz', '0'],
 ['0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '0', '-(l2-r*cos(Bf1))', 'cos(Bf1)*h1', '0', '0', '0', '0', '0', '0'],
 ['0', '0', '0', '0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '-(l2-r*cos(Bf2))', 'cos(Bf2)*h1', '0', '0', '0', '0'],
 ['-(Dc-r*sin(Br1))', 'sin(Br1)*h2', 'Dc+r*sin(Br2)', 'sin(Br2)*h2', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
@@ -166,13 +163,12 @@ md_2fr_1rr_mbd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1'
 # If there is an additional constant force Fspring pushing drive down through a spring, then the rocker balance function needs to be modified. Fspring positive direction means pulling drive down; negative means pushing down.
 # cols:	Frz1	Frf1	Frz2	Frf2	Fdz1	Fdf1	Fdt1	Fdz2	Fdf2	Fdt2	Fc	Ffz1	Fff1	Ffz2	Fff2	Equals
 # rows: X, Y, Z, Rx, Ry, Rz, -, RkF1, RkF2, SuspB, -, -, -, -, -, -
-ld450_0rr_nd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', 'M*(ax*(R-y)/R-w^2*x)+M*g*sin(theta)'],
+ld450_2frkr_0rrkr_normal_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', 'M*(ax*(R-y)/R-w^2*x)+M*g*sin(theta)'],
 ['0', 'sin(Br1)', '0', 'sin(Br2)', '0', '0', '0', '0', '0', '0', '1', '0', '-sin(Bf1)', '0 ', '-sin(Bf2)', 'M*(w^2*(R-y)+ax*x/R)'],
 ['1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '0', '1', '0', '1', '0', 'M*g*cos(theta)'],
 ['-(Dc-r*sin(Br1)+y)', 'sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', 'h', '-(Dc+r*sin(Bf1)+y)', '-sin(Bf1)*h', 'Dc-sin(Bf2)*r-y', '-sin(Bf2)*h', '0'],
 ['L+r*cos(Br1)+x', 'cos(Br1)*h', 'L+r*cos(Br2)+x', 'cos(Br2)*h', 'x', 'h', '-h', 'x', 'h', '-h', '0', '-(L-r*cos(Bf1)-x)', 'cos(Bf1)*h', '-(L-r*cos(Bf2)-x)', 'cos(Bf2)*h', '0'],
-['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)', 'Jz*ax/R'],
-['0', '-sin(Br1)*(L+cos(Br1)*r+x)', '0', '-sin(Br2)*(L+cos(Br2)*r+x)', '0', '0', '0', '0', '0', '0', '0', '0', '-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', '-sin(Bf2)*(L-cos(Bf2)*r-x)', '0'],
+['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)-sin(Br1)*(L+cos(Br1)*r+x)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)-sin(Br2)*(L+cos(Br2)*r+x)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)-sin(Bf2)*(L-cos(Bf2)*r-x)', 'Jz*ax/R'],
 ['0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '0', '-(l2-r*cos(Bf1))', 'cos(Bf1)*h1', '0', '0', '-Fspring*l1'],
 ['0', '0', '0', '0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '-(l2-r*cos(Bf2))', 'cos(Bf2)*h1', '-Fspring*l1'],
 ['-(Dc-r*sin(Br1)+y)', 'Kk*sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'Kk*sin(Br2)*h', '0', '0', '0', '0', '0', '0', 'Kk*h', '0', '-Kk*sin(Bf1)*h', '0', '-Kk*sin(Bf2)*h', '0	'],
@@ -186,13 +182,13 @@ ld450_0rr_nd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', 
 # LD450 No Rear Rocker Brake Drive
 # cols:	Frz1	Frf1	Frz2	Frf2	Fdz1	Fdf1	Fdt1	Fdz2	Fdf2	Fdt2	Fc	Ffz1	Fff1	Ffz2	Fff2	ax	ay	alphaZ	Equals
 # rows: X, Y, Z, Rx, Ry, Rz, -, RkF1, RkF2, SuspB, -, -, -, -, -, -, -, -, -
-ld450_0rr_bd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', '-M', '0', '0', 'M*g*sin(theta)'],
+ld450_2frkr_0rrkr_brake_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', '-M', '0', '0', 'M*g*sin(theta)'],
 ['0', 'sin(Br1)', '0', 'sin(Br2)', ' ', '0', '0', '0', '0', '0', '0', '1', '0', '-sin(Bf1)', '0 ', '-sin(Bf2)', '0', '-M', '0	0'],
 ['1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '0', '1', '0', '1', '0', '0', '0', '0', 'M*g*cos(theta)'],
 ['-(Dc-r*sin(Br1)+y)', 'sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', 'h', '-(Dc+r*sin(Bf1)+y)', '-sin(Bf1)*h', 'Dc-sin(Bf2)*r-y', '-sin(Bf2)*h', '0', '0', '0', '0'],
 ['L+r*cos(Br1)+x', 'cos(Br1)*h', 'L+r*cos(Br2)+x', 'cos(Br2)*h', 'x', 'h', '-h', 'x', 'h', '-h', '0', '-(L-r*cos(Bf1)-x)', 'cos(Bf1)*h', '-(L-r*cos(Bf2)-x)', 'cos(Bf2)*h', '0', '0', '0', '0'],
-['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)', '0', '0', '-Jz', '0'],
-['-sin(Br1)*(L+cos(Br1)*r+x)', '-sin(Br2)*(L+cos(Br2)*r+x)', '-sin(Bf1)*(L-cos(Bf1)*r-x)', '-sin(Bf2)*(L-cos(Bf2)*r-x)', '0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '0', '-(l2-r*cos(Bf1))', 'cos(Bf1)*h1', '0', '0', '0', '0', '0', '-Fspring*l1'],
+['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)-sin(Br1)*(L+cos(Br1)*r+x)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)-sin(Br2)*(L+cos(Br2)*r+x)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)-sin(Bf2)*(L-cos(Bf2)*r-x)', '0', '0', '-Jz', '0'],
+['0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '0', '-(l2-r*cos(Bf1))', 'cos(Bf1)*h1', '0', '0', '0', '0', '0', '-Fspring*l1'],
 ['0', '0', '0', '0', '0', '0', '0', 'l1', 'h1', '-h1', '0', '0', '0', '-(l2-r*cos(Bf2))', 'cos(Bf2)*h1', '0', '0', '0', '-Fspring*l1'],
 ['-(Dc-r*sin(Br1)+y)', 'Kk*sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'Kk*sin(Br2)*h', '', '0', '0', '0', '0', '0', '0', 'Kk*h', '0', '-Kk*sin(Bf1)*h', '0', '-Kk*sin(Bf2)*h', '0', '0', '0	0'],
 ['-0.02', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
@@ -214,13 +210,12 @@ ld450_0rr_bd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', 
 # Fc1 and Fc2 is allocated based on the Fdz1 and Fdz1, assuming Fc1 is propotional to Fdz1. So Fc1 = Fc * Fdz1 / (Fdz1 + Fdz2) and Fc2 = Fc * Fdz2 / (Fdz1 + Fdz2). Here Fc1 = Fc2
 # cols:	Frz1	Frf1	Frz2	Frf2	Fdz1	Fdf1	Fdt1	Fdz2	Fdf2	Fdt2	Fc	Ffz1	Fff1	Ffz2	Fff2	Equals
 # rows: X, Y, Z, Rx, Ry, Rz, -, SuspB, -, -, -, -, -, -, -, -
-ld250_nd = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', 'M*(ax*(R-y)/R-w^2*x)+M*g*sin(theta)'],
+ld250_normal_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', 'M*(ax*(R-y)/R-w^2*x)+M*g*sin(theta)'],
 ['0', 'sin(Br1)', '0', 'sin(Br2)', '0', '0', '0', '0', '0', '0', '1', '0', '-sin(Bf1)', '0 ', '-sin(Bf2)', 'M*(w^2*(R-y)+ax*x/R)'],
 ['1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '0', '1', '0', '1', '0', 'M*g*cos(theta)'],
 ['-(Dc-r*sin(Br1)+y)', 'sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', 'h', '-(Dc+r*sin(Bf1)+y)', '-sin(Bf1)*h', 'Dc-sin(Bf2)*r-y', '-sin(Bf2)*h', '0'],
 ['L+r*cos(Br1)+x', 'cos(Br1)*h', 'L+r*cos(Br2)+x', 'cos(Br2)*h', 'x', 'h', '-h', 'x', 'h', '-h', '0', '-(L-r*cos(Bf1)-x)', 'cos(Bf1)*h', '-(L-r*cos(Bf2)-x)', 'cos(Bf2)*h', '0'],
-['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)', 'Jz*ax/R'],
-['0', '-sin(Br1)*(L+cos(Br1)*r+x)', '0', '-sin(Br2)*(L+cos(Br2)*r+x)', '0', '0', '0', '0', '0', '0', '0', '0', '-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', '-sin(Bf2)*(L-cos(Bf2)*r-x)', '0'],
+['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)-sin(Br1)*(L+cos(Br1)*r+x)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)-sin(Br2)*(L+cos(Br2)*r+x)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)-sin(Bf2)*(L-cos(Bf2)*r-x)', 'Jz*ax/R'],
 ['-(Dc-r*sin(Br1)+y)', '0.5*sin(Br1)*h', 'Dc+r*sin(Br2)-y', '0.5*sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', '0.5*h', '0', '-0.5*sin(Bf1)*h', '0', '-0.5*sin(Bf2)*h', '0'],
 ['-0.02', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
 ['0', '0', '-0.02', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
@@ -238,8 +233,7 @@ ld250_brake_drive =	[['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '
 ['1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '0', '1', '0', '1', '0', '0', '0', '0', 'M*g*cos(theta)'],
 ['-(Dc-r*sin(Br1)+y)', 'sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', 'h', '-(Dc+r*sin(Bf1)+y)', '-sin(Bf1)*h', 'Dc-sin(Bf2)*r-y', '-sin(Bf2)*h', '0', '0', '0', '0'],
 ['L+r*cos(Br1)+x', 'cos(Br1)*h', 'L+r*cos(Br2)+x', 'cos(Br2)*h', 'x', 'h', '-h', 'x', 'h', '-h', '0', '-(L-r*cos(Bf1)-x)', 'cos(Bf1)*h', '-(L-r*cos(Bf2)-x)', 'cos(Bf2)*h', '0', '0', '0', '0'],
-['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)', '0', '0', '-Jz', '0'],
-['0', '-sin(Br1)*(L+cos(Br1)*r+x)', '0', '-sin(Br2)*(L+cos(Br2)*r+x)', '0', '0', '0', '0', '0', '0', '0', '0', '-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', '-sin(Bf2)*(L-cos(Bf2)*r-x)', '0', '0', '0', '0',	'0'],
+['0', '-cos(Br1)*(Dc-r*sin(Br1)+y)-sin(Br1)*(L+cos(Br1)*r+x)', '0', 'cos(Br2)*(Dc+r*sin(Br2)-y)-sin(Br2)*(L+cos(Br2)*r+x)', '0', '-(Dd+y)', 'Dd+y', '0', 'Dd-y', '-(Dd-y)', '-x', '0', '-cos(Bf1)*(Dc+r*sin(Bf1)+y)-sin(Bf1)*(L-cos(Bf1)*r-x)', '0', 'cos(Bf2)*(Dc-r*sin(Bf2)-y)-sin(Bf2)*(L-cos(Bf2)*r-x)', '0', '0', '-Jz', '0'],
 ['-(Dc-r*sin(Br1)+y)', '0.5*sin(Br1)*h', 'Dc+r*sin(Br2)-y', '0.5*sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', '0.5*h', '0', '-0.5*sin(Bf1)*h', '0', '-0.5*sin(Bf2)*h', '0', '0', '0', '0'],
 ['-0.02', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
 ['0', '0', '-0.02', '1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
