@@ -1,7 +1,9 @@
 import logging
+from math import cos, sin
 from pathlib import Path
+
 import toml
-from math import sin, cos
+from model_matrix import Model_MD, Model_LD250
 
 # configure logger for debug messages
 logger = logging.getLogger(__name__)
@@ -21,9 +23,9 @@ def main():
         cfg_data = toml.load(cfg_file)
         logger.debug(f'toml config loaded')
     
+    # load robot characteristic matrix from cfg file
     ld250_normal_drive_Mk = cfg_data['matrix_models']['ld250_normal_drive']
     logger.debug(ld250_normal_drive_Mk)
-
     eval_global_vars = {'__builtins__':{},'sin': sin, 'cos': cos}
     eval_local_vars = {'Br1': 1,
                         'Br2': 1,
@@ -48,6 +50,10 @@ def main():
                         }
     ld250_brake_drive_Mk_eval = [[eval(item, eval_global_vars, eval_local_vars) for item in row] for row in ld250_normal_drive_Mk]
     logger.debug(ld250_brake_drive_Mk_eval)
+
+    md_robot = Model_MD.MD(650)
+    ld_robot = Model_LD250.LD250()
+    pass
 
 if __name__ == "__main__":
     main()

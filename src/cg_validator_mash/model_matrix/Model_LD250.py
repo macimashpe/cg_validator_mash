@@ -1,6 +1,6 @@
 import numpy as np
 
-from BaseModel import BaseModel
+from .BaseModel import BaseModel
 
 # fixed drive wheel down force and no rockers
 class LD250(BaseModel):

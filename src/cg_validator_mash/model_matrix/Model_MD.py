@@ -1,6 +1,6 @@
 import numpy as np
 
-from BaseModel import BaseModel
+from .BaseModel import BaseModel
 
 class MD(BaseModel):
     def __init__(self, payloadM=650):
