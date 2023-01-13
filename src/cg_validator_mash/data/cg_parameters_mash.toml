@@ -210,8 +210,8 @@ ld450_2frkr_0rrkr_brake_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1',
 # Fc1 and Fc2 is allocated based on the Fdz1 and Fdz1, assuming Fc1 is propotional to Fdz1. So Fc1 = Fc * Fdz1 / (Fdz1 + Fdz2) and Fc2 = Fc * Fdz2 / (Fdz1 + Fdz2). Here Fc1 = Fc2
 # cols:	Frz1	Frf1	Frz2	Frf2	Fdz1	Fdf1	Fdt1	Fdz2	Fdf2	Fdt2	Fc	Ffz1	Fff1	Ffz2	Fff2	Equals
 # rows: X, Y, Z, Rx, Ry, Rz, -, SuspB, -, -, -, -, -, -, -, -
-ld250_normal_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', 'M*(ax*(R-y)/R-w^2*x)+M*g*sin(theta)'],
-['0', 'sin(Br1)', '0', 'sin(Br2)', '0', '0', '0', '0', '0', '0', '1', '0', '-sin(Bf1)', '0 ', '-sin(Bf2)', 'M*(w^2*(R-y)+ax*x/R)'],
+ld250_normal_drive = [['0', '-cos(Br1)', '0', '-cos(Br2)', '0', '-1', '1', '0', '-1', '1', '0', '0', '-cos(Bf1)', '0', '-cos(Bf2)', 'M*(ax*(R-y)/R-w**2*x)+M*g*sin(theta)'],
+['0', 'sin(Br1)', '0', 'sin(Br2)', '0', '0', '0', '0', '0', '0', '1', '0', '-sin(Bf1)', '0 ', '-sin(Bf2)', 'M*(w**2*(R-y)+ax*x/R)'],
 ['1', '0', '1', '0', '1', '0', '0', '1', '0', '0', '0', '1', '0', '1', '0', 'M*g*cos(theta)'],
 ['-(Dc-r*sin(Br1)+y)', 'sin(Br1)*h', 'Dc+r*sin(Br2)-y', 'sin(Br2)*h', '-(Dd+y)', '0', '0', 'Dd-y', '0', '0', 'h', '-(Dc+r*sin(Bf1)+y)', '-sin(Bf1)*h', 'Dc-sin(Bf2)*r-y', '-sin(Bf2)*h', '0'],
 ['L+r*cos(Br1)+x', 'cos(Br1)*h', 'L+r*cos(Br2)+x', 'cos(Br2)*h', 'x', 'h', '-h', 'x', 'h', '-h', '0', '-(L-r*cos(Bf1)-x)', 'cos(Bf1)*h', '-(L-r*cos(Bf2)-x)', 'cos(Bf2)*h', '0'],

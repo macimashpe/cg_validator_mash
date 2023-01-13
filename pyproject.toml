@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Maci Miri <maci@mashpe.net>"]
 readme = "README.md"
-packages = [{include = "cg_validator_mash"}]
+packages = [{include = "cg_validator_mash", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"

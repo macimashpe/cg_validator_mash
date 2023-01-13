@@ -43,7 +43,8 @@ def main():
                         'Jz': 1,
                         'theta': 1,
                         'L': 1,
-                        'R': 1
+                        'R': 1,
+                        'ax': 1
                         }
     ld250_brake_drive_Mk_eval = [[eval(item, eval_global_vars, eval_local_vars) for item in row] for row in ld250_normal_drive_Mk]
     logger.debug(ld250_brake_drive_Mk_eval)
