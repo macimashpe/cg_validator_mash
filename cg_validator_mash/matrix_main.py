@@ -21,8 +21,8 @@ def main():
         cfg_data = toml.load(cfg_file)
         logger.debug(f'toml config loaded')
     
-    ld250_brake_drive_Mk = cfg_data['matrix_models']['ld250_brake_drive_Mk']
-    print(ld250_brake_drive_Mk)
+    ld250_normal_drive_Mk = cfg_data['matrix_models']['ld250_normal_drive']
+    logger.debug(ld250_normal_drive_Mk)
 
     eval_global_vars = {'__builtins__':{},'sin': sin, 'cos': cos}
     eval_local_vars = {'Br1': 1,
@@ -45,8 +45,8 @@ def main():
                         'L': 1,
                         'R': 1
                         }
-    ld250_brake_drive_Mk_eval = [[eval(item, eval_global_vars, eval_local_vars) for item in row] for row in ld250_brake_drive_Mk]
-    print(ld250_brake_drive_Mk_eval)
+    ld250_brake_drive_Mk_eval = [[eval(item, eval_global_vars, eval_local_vars) for item in row] for row in ld250_normal_drive_Mk]
+    logger.debug(ld250_brake_drive_Mk_eval)
 
 if __name__ == "__main__":
     main()
