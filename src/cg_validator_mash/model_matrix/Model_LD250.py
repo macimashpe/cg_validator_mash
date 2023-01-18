@@ -1,30 +1,39 @@
 import numpy as np
-
 from .BaseModel import BaseModel
+
+# CONSTANTS
+# LD250 platform mass [kg]
+PLATFORM_MASS = 146
+# rocker ratio, (drive wheel to pivot pin) / (drive wheel to caster)
+# TODO: confirm this makes sense in LD250 model that has no rockers
+ROCKER_RATIO_k = 0.48
+# distance from center of drive wheel to front/rear caster pivot [m]
+DRIVE_WHEEL_TO_CASTER_PIVOT_L = 0.285
+# caster swivel radius, from caster swivel to caster wheel center [m]
+CASTER_SWIVEL_RADIUS_r = 0.03175
+# drive wheel to rocker pivot. Doesn't seem used by LD250 model
+# DRIVE_WHEEL_TO_ROCKER_PIVOT_l1 = DRIVE_WHEEL_TO_CASTER_PIVOT_L * ROCKER_RATIO_k
+# self.l2 = DRIVE_WHEEL_TO_CASTER_PIVOT_L * (1-ROCKER_RATIO_k)
+# self.h2 = 0.1 
+# self.h1 = 0.05
 
 # fixed drive wheel down force and no rockers
 class LD250(BaseModel):
-    def __init__(self, payloadM=250):
+    def __init__(self, payload_mass=250):
         BaseModel.__init__(self)
         self.name = 'LD250'
         # Fixed robot parameters LD250
-        self.L = 0.285
-        self.r = 0.03175
-        self.l1 = self.L * self.k
-        self.l2 = self.L * (1-self.k)
-        self.h2 = 0.1 
-        self.h1 = 0.05
-        self.MPayload = payloadM
-        self.Mrobot = 146
-        self.M = self.MPayload+self.Mrobot
-        self.g = 9.8
+        self.platform_mass = PLATFORM_MASS # prev 'Mrobot'
+        self.JzRobot = 32*self.platform_mass/223
+        self.payload_mass = payload_mass
+        # self.JzPayload = 43.28*self.payload_mass/600  # not needed with payload_mass property decorator
+        # self.Jz = 85.3*self.total_mass/823  # not needed with payload_mass property decorator
+        # self.total_mass = self.payload_mass+self.platform_mass # prev 'M', not needed with platform_mass property decorator
+        # self.g = 9.8, not needed since initialized in BaseModel
         self.Dc = 0.465/2
         self.Dd = 0.605/2
         self.robotH = 0.38
-        self.pRobot = [0, 0, (self.robotH - 0.04) / 2 + 0.04]
-        self.JzRobot = 32*self.Mrobot/223
-        self.JzPayload = 43.28*self.MPayload/600
-        self.Jz = 85.3*self.M/823
+        self.platform_cg = [0, 0, (self.robotH - 0.04) / 2 + 0.04]  # prev pRobot
         self.kr = 3.75
         self.kf = 3.75
         self.kk = self.kr/(self.kr+self.kf)
@@ -33,21 +42,21 @@ class LD250(BaseModel):
         self.maxDriveAccelF = 1.25 * 30 / (0.2032 / 2) # single drive wheel
         self.maxDriveDecelF = self.maxDriveAccelF * 3 # because of the gear box, decel force is larger than the accel force under same motor current
 
-        self.solveCasterAngle()
+        self.solve_caster_angle()
 
     # xyh here is the overall CG
     def modelNoBrake(self, x,y,h):
-        if self.ac != 0:
+        if self.centripetal_acceleration != 0:
             alphaz = self.ax/self.R
         else:
             alphaz = 0
-        Mk = np.array( [[0,	-np.cos(self.Br1),	0,	-np.cos(self.Br2),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self.Bf1),	0,	-np.cos(self.Bf2)],
-                        [0,		np.sin(self.Br1),	0,	np.sin(self.Br2),	0,	0,	0,	0,	0,	0,	1,	0,	-np.sin(self.Bf1),	0, 	-np.sin(self.Bf2)],
+        Mk = np.array( [[0,	-np.cos(self.rear_right_caster_angle),	0,	-np.cos(self.rear_left_caster_angle),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self.front_right_caster_angle),	0,	-np.cos(self.front_left_caster_angle)],
+                        [0,		np.sin(self.rear_right_caster_angle),	0,	np.sin(self.rear_left_caster_angle),	0,	0,	0,	0,	0,	0,	1,	0,	-np.sin(self.front_right_caster_angle),	0, 	-np.sin(self.front_left_caster_angle)],
                         [1,		0,	   1,	0,	  1,	0,	0,	1,	0,	0,	0,	1,	0,	  1,		0],
-                        [-(self.Dc-self.r*np.sin(self.Br1)+y),	np.sin(self.Br1)*h,		self.Dc+self.r*np.sin(self.Br2)-y,	np.sin(self.Br2)*h,		-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	h,	-(self.Dc+self.r*np.sin(self.Bf1)+y),	-np.sin(self.Bf1)*h,		self.Dc-np.sin(self.Bf2)*self.r-y,		-np.sin(self.Bf2)*h],
-                        [self.L+self.r*np.cos(self.Br1)+x,	np.cos(self.Br1)*h,		self.L+self.r*np.cos(self.Br2)+x,	np.cos(self.Br2)*h,		x,	h,	-h,	x,	h,	-h,	0,	-(self.L-self.r*np.cos(self.Bf1)-x),	np.cos(self.Bf1)*h,		-(self.L-self.r*np.cos(self.Bf2)-x),	np.cos(self.Bf2)*h],
-                        [0,		-np.cos(self.Br1)*(self.Dc-self.r*np.sin(self.Br1)+y)-np.sin(self.Br1)*(self.L+np.cos(self.Br1)*self.r+x),	0,	np.cos(self.Br2)*(self.Dc+self.r*np.sin(self.Br2)-y)-np.sin(self.Br2)*(self.L+np.cos(self.Br2)*self.r+x),	0,	-(self.Dd+y),	self.Dd+y,	0,	self.Dd-y,	-(self.Dd-y),	-x,	0,	-np.cos(self.Bf1)*(self.Dc+self.r*np.sin(self.Bf1)+y)-np.sin(self.Bf1)*(self.L-np.cos(self.Bf1)*self.r-x),	0,	np.cos(self.Bf2)*(self.Dc-self.r*np.sin(self.Bf2)-y)-np.sin(self.Bf2)*(self.L-np.cos(self.Bf2)*self.r-x)],
-                        [-(self.Dc-self.r*np.sin(self.Br1)+y),    self.kk*np.sin(self.Br1)*h,	self.Dc+self.r*np.sin(self.Br2)-y,	self.kk*np.sin(self.Br2)*h,	-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	self.kk*h,	0,	-self.kk*np.sin(self.Bf1)*h,	0,	-self.kk*np.sin(self.Bf2)*h],
+                        [-(self.Dc-CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_right_caster_angle)+y),	np.sin(self.rear_right_caster_angle)*h,		self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_left_caster_angle)-y,	np.sin(self.rear_left_caster_angle)*h,		-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	h,	-(self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.front_right_caster_angle)+y),	-np.sin(self.front_right_caster_angle)*h,		self.Dc-np.sin(self.front_left_caster_angle)*CASTER_SWIVEL_RADIUS_r-y,		-np.sin(self.front_left_caster_angle)*h],
+                        [DRIVE_WHEEL_TO_CASTER_PIVOT_L+CASTER_SWIVEL_RADIUS_r*np.cos(self.rear_right_caster_angle)+x,	np.cos(self.rear_right_caster_angle)*h,		DRIVE_WHEEL_TO_CASTER_PIVOT_L+CASTER_SWIVEL_RADIUS_r*np.cos(self.rear_left_caster_angle)+x,	np.cos(self.rear_left_caster_angle)*h,		x,	h,	-h,	x,	h,	-h,	0,	-(DRIVE_WHEEL_TO_CASTER_PIVOT_L-CASTER_SWIVEL_RADIUS_r*np.cos(self.front_right_caster_angle)-x),	np.cos(self.front_right_caster_angle)*h,		-(DRIVE_WHEEL_TO_CASTER_PIVOT_L-CASTER_SWIVEL_RADIUS_r*np.cos(self.front_left_caster_angle)-x),	np.cos(self.front_left_caster_angle)*h],
+                        [0,		-np.cos(self.rear_right_caster_angle)*(self.Dc-CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_right_caster_angle)+y)-np.sin(self.rear_right_caster_angle)*(DRIVE_WHEEL_TO_CASTER_PIVOT_L+np.cos(self.rear_right_caster_angle)*CASTER_SWIVEL_RADIUS_r+x),	0,	np.cos(self.rear_left_caster_angle)*(self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_left_caster_angle)-y)-np.sin(self.rear_left_caster_angle)*(DRIVE_WHEEL_TO_CASTER_PIVOT_L+np.cos(self.rear_left_caster_angle)*CASTER_SWIVEL_RADIUS_r+x),	0,	-(self.Dd+y),	self.Dd+y,	0,	self.Dd-y,	-(self.Dd-y),	-x,	0,	-np.cos(self.front_right_caster_angle)*(self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.front_right_caster_angle)+y)-np.sin(self.front_right_caster_angle)*(DRIVE_WHEEL_TO_CASTER_PIVOT_L-np.cos(self.front_right_caster_angle)*CASTER_SWIVEL_RADIUS_r-x),	0,	np.cos(self.front_left_caster_angle)*(self.Dc-CASTER_SWIVEL_RADIUS_r*np.sin(self.front_left_caster_angle)-y)-np.sin(self.front_left_caster_angle)*(DRIVE_WHEEL_TO_CASTER_PIVOT_L-np.cos(self.front_left_caster_angle)*CASTER_SWIVEL_RADIUS_r-x)],
+                        [-(self.Dc-CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_right_caster_angle)+y),    self.kk*np.sin(self.rear_right_caster_angle)*h,	self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_left_caster_angle)-y,	self.kk*np.sin(self.rear_left_caster_angle)*h,	-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	self.kk*h,	0,	-self.kk*np.sin(self.front_right_caster_angle)*h,	0,	-self.kk*np.sin(self.front_left_caster_angle)*h],
                         [-self.urc,		1,		0,		0,		0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0],
                         [0,			0,		-self.urc,	1,	    0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0],
                         [0,			0,		0,		0,		-self.urd,	1*self.dir,	0,	0,	0,	0,	0,	0,	0,	0,	0],
@@ -56,7 +65,7 @@ class LD250(BaseModel):
                         [0,			0,		0,		0,		0,	0,	0,	0,	0,	0,	0,	0,	0,	-self.urc,	1],
                         [0,		    0,	    0,	    0,      1,	0,	0,	0,	0,	0,	0,	0,	0,	0,			0],
                         [0,			0,		0,		0,		0,	0,	0,	1,	0,	0,	0,	0,	0,	0,			0]])
-        Y = np.array([[self.M*(self.ax*(self.R-y)/self.R - self.w**2*x) + self.M*self.g*np.sin(self.theta)], [self.M*(self.w**2*(self.R-y) + self.ax*x/self.R)], [self.M*self.g*np.cos(self.theta)],[0], [0], [self.Jz*alphaz],[0],[0],[0],[0],[0],[0],[0],[self.downForce],[self.downForce]])
+        Y = np.array([[self.total_mass*(self.ax*(self.R-y)/self.R - self.w**2*x) + self.total_mass*self.g*np.sin(self.theta)], [self.total_mass*(self.w**2*(self.R-y) + self.ax*x/self.R)], [self.total_mass*self.g*np.cos(self.theta)],[0], [0], [self.Jz*alphaz],[0],[0],[0],[0],[0],[0],[0],[self.downForce],[self.downForce]])
         # [Frz1;Frf1;Frz2;Frf2;Fdz1;Fdf1;Fdt1;Fdz2;Fdf2;Fdt2;Fc;Ffz1;Fff1;Ffz2;Fff2];
         #     0;    1;  2;   3;   4;   5;   6;   7;   8;   9;10;  11;  12;  13;  14  
         return np.linalg.solve(Mk,Y)
@@ -64,17 +73,17 @@ class LD250(BaseModel):
     # xyh here is the overall CG
     def modelBrake(self, x,y,h):
         self.dynamicU()
-        if self.ac != 0:
+        if self.centripetal_acceleration != 0:
             ux = 0.95
         else:
             ux = 1
-        Mk = np.array( [[0,	-np.cos(self.Br1),	0,	-np.cos(self.Br2),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self.Bf1),	0,	-np.cos(self.Bf2), -self.M, 0, 0],
-                        [0,		np.sin(self.Br1),	0,	np.sin(self.Br2),	0,	0,	0,	0,	0,	0,	1,	0,	-np.sin(self.Bf1),	0, 	-np.sin(self.Bf2), 0, -self.M, 0],
+        Mk = np.array( [[0,	-np.cos(self.rear_right_caster_angle),	0,	-np.cos(self.rear_left_caster_angle),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self.front_right_caster_angle),	0,	-np.cos(self.front_left_caster_angle), -self.total_mass, 0, 0],
+                        [0,		np.sin(self.rear_right_caster_angle),	0,	np.sin(self.rear_left_caster_angle),	0,	0,	0,	0,	0,	0,	1,	0,	-np.sin(self.front_right_caster_angle),	0, 	-np.sin(self.front_left_caster_angle), 0, -self.total_mass, 0],
                         [1,		0,	   1,	0,	  1,	0,	0,	1,	0,	0,	0,	1,	0,	  1,		0, 0, 0, 0],
-                        [-(self.Dc-self.r*np.sin(self.Br1)+y),	np.sin(self.Br1)*h,		self.Dc+self.r*np.sin(self.Br2)-y,	np.sin(self.Br2)*h,		-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	h,	-(self.Dc+self.r*np.sin(self.Bf1)+y),	-np.sin(self.Bf1)*h,		self.Dc-np.sin(self.Bf2)*self.r-y,		-np.sin(self.Bf2)*h, 0, 0, 0],
-                        [self.L+self.r*np.cos(self.Br1)+x,	np.cos(self.Br1)*h,		self.L+self.r*np.cos(self.Br2)+x,	np.cos(self.Br2)*h,		x,	h,	-h,	x,	h,	-h,	0,	-(self.L-self.r*np.cos(self.Bf1)-x),	np.cos(self.Bf1)*h,		-(self.L-self.r*np.cos(self.Bf2)-x),	np.cos(self.Bf2)*h, 0, 0, 0],
-                        [0,		-np.cos(self.Br1)*(self.Dc-self.r*np.sin(self.Br1)+y)-np.sin(self.Br1)*(self.L+np.cos(self.Br1)*self.r+x),	0,	np.cos(self.Br2)*(self.Dc+self.r*np.sin(self.Br2)-y)-np.sin(self.Br2)*(self.L+np.cos(self.Br2)*self.r+x),	0,	-(self.Dd+y),	self.Dd+y,	0,	self.Dd-y,	-(self.Dd-y),	-x,	0,	-np.cos(self.Bf1)*(self.Dc+self.r*np.sin(self.Bf1)+y)-np.sin(self.Bf1)*(self.L-np.cos(self.Bf1)*self.r-x),	0,	np.cos(self.Bf2)*(self.Dc-self.r*np.sin(self.Bf2)-y)-np.sin(self.Bf2)*(self.L-np.cos(self.Bf2)*self.r-x),0,	0, -self.Jz],
-                        [-(self.Dc-self.r*np.sin(self.Br1)+y),	self.kk*np.sin(self.Br1)*h,			self.Dc+self.r*np.sin(self.Br2)-y,	self.kk*np.sin(self.Br2)*h,			-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	self.kk*h,	0,			-self.kk*np.sin(self.Bf1)*h,		0,			-self.kk*np.sin(self.Bf2)*h,		0,	0,	0],
+                        [-(self.Dc-CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_right_caster_angle)+y),	np.sin(self.rear_right_caster_angle)*h,		self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_left_caster_angle)-y,	np.sin(self.rear_left_caster_angle)*h,		-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	h,	-(self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.front_right_caster_angle)+y),	-np.sin(self.front_right_caster_angle)*h,		self.Dc-np.sin(self.front_left_caster_angle)*self.r-y,		-np.sin(self.front_left_caster_angle)*h, 0, 0, 0],
+                        [DRIVE_WHEEL_TO_CASTER_PIVOT_L+CASTER_SWIVEL_RADIUS_r*np.cos(self.rear_right_caster_angle)+x,	np.cos(self.rear_right_caster_angle)*h,		DRIVE_WHEEL_TO_CASTER_PIVOT_L+CASTER_SWIVEL_RADIUS_r*np.cos(self.rear_left_caster_angle)+x,	np.cos(self.rear_left_caster_angle)*h,		x,	h,	-h,	x,	h,	-h,	0,	-(DRIVE_WHEEL_TO_CASTER_PIVOT_L-CASTER_SWIVEL_RADIUS_r*np.cos(self.front_right_caster_angle)-x),	np.cos(self.front_right_caster_angle)*h,		-(DRIVE_WHEEL_TO_CASTER_PIVOT_L-CASTER_SWIVEL_RADIUS_r*np.cos(self.front_left_caster_angle)-x),	np.cos(self.front_left_caster_angle)*h, 0, 0, 0],
+                        [0,		-np.cos(self.rear_right_caster_angle)*(self.Dc-CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_right_caster_angle)+y)-np.sin(self.rear_right_caster_angle)*(DRIVE_WHEEL_TO_CASTER_PIVOT_L+np.cos(self.rear_right_caster_angle)*self.r+x),	0,	np.cos(self.rear_left_caster_angle)*(self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_left_caster_angle)-y)-np.sin(self.rear_left_caster_angle)*(DRIVE_WHEEL_TO_CASTER_PIVOT_L+np.cos(self.rear_left_caster_angle)*self.r+x),	0,	-(self.Dd+y),	self.Dd+y,	0,	self.Dd-y,	-(self.Dd-y),	-x,	0,	-np.cos(self.front_right_caster_angle)*(self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.front_right_caster_angle)+y)-np.sin(self.front_right_caster_angle)*(DRIVE_WHEEL_TO_CASTER_PIVOT_L-np.cos(self.front_right_caster_angle)*self.r-x),	0,	np.cos(self.front_left_caster_angle)*(self.Dc-CASTER_SWIVEL_RADIUS_r*np.sin(self.front_left_caster_angle)-y)-np.sin(self.front_left_caster_angle)*(DRIVE_WHEEL_TO_CASTER_PIVOT_L-np.cos(self.front_left_caster_angle)*self.r-x),0,	0, -self.Jz],
+                        [-(self.Dc-CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_right_caster_angle)+y),	self.kk*np.sin(self.rear_right_caster_angle)*h,			self.Dc+CASTER_SWIVEL_RADIUS_r*np.sin(self.rear_left_caster_angle)-y,	self.kk*np.sin(self.rear_left_caster_angle)*h,			-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	self.kk*h,	0,			-self.kk*np.sin(self.front_right_caster_angle)*h,		0,			-self.kk*np.sin(self.front_left_caster_angle)*h,		0,	0,	0],
                         [-self.urc,		1,		0,		0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
                         [0,			0,		-self.urc,	1,	    0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
                         [0,			0,		0,		0,		-self.urd,	1*self.dir,	    0,	0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
@@ -86,7 +95,7 @@ class LD250(BaseModel):
                         [0,		    0,		0,	    0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,		0, 0, 1,-x],
                         [0,		    0,	    0,	    0,      1,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,  0, 0, 0],
                         [0,			0,		0,		0,		0,	0,	0,	1,	0,	0,	0,	0,	0,	0,	0,  0, 0, 0]])
-        Y = np.array([[self.M*self.g*np.sin(self.theta)], [0], [self.M*self.g*np.cos(self.theta)],[0], [0], [0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[self.w**2*(self.R-y)],[self.downForce],[self.downForce]])
+        Y = np.array([[self.total_mass*self.g*np.sin(self.theta)], [0], [self.total_mass*self.g*np.cos(self.theta)],[0], [0], [0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[self.w**2*(self.R-y)],[self.downForce],[self.downForce]])
         # [Frz1;Frf1;Frz2;Frf2;Fdz1;Fdf1;Fdt1;Fdz2;Fdf2;Fdt2;Fc;Ffz1;Fff1;Ffz2;Fff2;aCGx;aCGy;alphaZ];
         #     0;   1;  2;   3;   4;   5;   6;   7;   8;   9;10;  11;  12;  13;  14;  15;  16;    17  
         self.staticU()
