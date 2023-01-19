@@ -24,9 +24,12 @@ def main():
         logger.debug(f'toml config loaded')
 
     # init robot object from model libraries
-    ld_mass = cfg_data['LD']['dimensions']['mass']
-    ld_robot = Model_LD250.LD250(ld_mass)
-    # next step is to solve caster angles (taken from omrom example)
+    payload_mass = cfg_data['payload']['mass']
+    ld_robot = Model_LD250.LD250(payload_mass)
+
+    test = ld_robot.modelNoBrake(0,0,0)
+    test2 = ld_robot.normalDriveCriterion(test)
+    pass
 
 if __name__ == "__main__":
     main()

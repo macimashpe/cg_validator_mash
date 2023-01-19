@@ -16,18 +16,19 @@ logger.addHandler(stream_handler)
 
 # Base model for all robots
 class BaseModel(ABC):
-    '''def __init__(self):  # don't think __init__ is needed since subclass will entirely override it anyway.
+    @abstractmethod
+    def __init__(self):  # don't think __init__ is needed since subclass will entirely override it anyway.
         self.name = 'BaseModel'
         self.k = .48 # rocker ratio, (drive wheel to pivot pin) / (drive wheel to caster)
         self.us = 0.76 # Static friction coefficiency
         self.ud = 0.63 # Dynamic coefficientcy
         self.u = self.us
         self.theta = np.deg2rad(0) # ramp angle
-        self.axa = 0.8 # acceleration in m/s^2
-        self.axd = -1.2 # deceleration in m/s^2
-        self.ax = self.axa
+        # self.axa = 0.8 # acceleration in m/s^2
+        # self.axd = -1.2 # deceleration in m/s^2
+        self.acceleration = 0.8 #  prev self.axa
         self.brakeDecel = -1.3 # brake decel should be larger than 1.3
-        self.centripetal_acceleration = 0.5 # centripetal accel
+        self.centripetal_acceleration = 0.5 # centripetal accel, prev ac
         self.velocity = 1.2 # robot center velocity
         self.R = self.velocity**2/self.centripetal_acceleration # robot trajactory radius
         self.w = self.velocity / self.R # robot angular velocity
@@ -39,7 +40,6 @@ class BaseModel(ABC):
         self.maxDriveDecelF = 99999 # Max motor force during decel
         self.maxDriveAccelF = 99999 # Max motor force furing accel
 
-        # TODO: delete all unneeded defaults in BaseModel
         # default values come from LD450
         self.L = 0.285 # Drive wheel to front/back caster distance
         self.r = 0.03175 # caster swivel radius
@@ -53,8 +53,8 @@ class BaseModel(ABC):
         # self.JzPayload = 43.28*self._payload_mass/600 # payload moment of inertia, no longer needed with payload_mass property decorator
         # self.total_mass = self._payload_mass+self.platform_mass # total mass, prev 'M', no longer needed with payload_mass property decorator
         # self.Jz = 85.3*self.total_mass/823 # robot with payload moment of inertia, no longer needed with payload_mass property decorator
-        self.Dc = 0.465/2 # width from robot center to caster swivel center 
-        self.Dd = 0.60553/2 # width from robot center to drive wheel center
+        self._caster_pivot_to_platform_center_y_Dc = 0.465/2 # width from robot center to caster swivel center 
+        self._drive_wheel_to_platform_center_y_Dd = 0.60553/2 # width from robot center to drive wheel center
         self.robotH = 0.38 # robot height
         self.ground_clearance = 0.04
         self.pRobot = [0, 0, (self.robotH - self.ground_clearance) / 2 + self.ground_clearance] # robot center of mass position without payload in [x, y, z]
@@ -64,13 +64,12 @@ class BaseModel(ABC):
         self.Fspring = 0 # Extra force acted on the drive wheel
     
         # caster angles, [rad]
-        self.rear_right_caster_angle = 0 # Rear caster 1 angle during corning, Br1
-        self.front_right_caster_angle = 0 # Front caster 1 angle during corning, Bf1
-        self.rear_left_caster_angle = 0 # Rear caster 2 angle during corning, Br2
-        self.front_left_caster_angle = 0 # Front caster 2 angle during corning, Bf2
+        self._rear_right_caster_angle = 0 # Rear caster 1 angle during corning, Br1
+        self._front_right_caster_angle = 0 # Front caster 1 angle during corning, Bf1
+        self._rear_left_caster_angle = 0 # Rear caster 2 angle during corning, Br2
+        self._front_left_caster_angle = 0 # Front caster 2 angle during corning, Bf2
 
         self.dir = 1 # direction signal
-    '''
 
     '''# need to be run before update overallCG, payloadCG and overallJz
     def updatePayloadM(self, m):
@@ -90,9 +89,9 @@ class BaseModel(ABC):
     def payload_mass(self, payload_mass):
         logger.debug(f'Set payload_mass: {payload_mass}')
         self._payload_mass = payload_mass
-        self.total_mass = self._payload_mass+self.platform_mass
-        self.JzPayload = 43.28*self._payload_mass/600
-        self.Jz = 85.3*self.total_mass/823
+        self._total_mass = self._payload_mass+self._platform_mass
+        self._JzPayload = 43.28*self._payload_mass/600
+        self._Jz = 85.3*self._total_mass/823
 
 
     def updateK(self, ki):
@@ -102,15 +101,18 @@ class BaseModel(ABC):
     def updateRampAngle(self, angle):
         self.theta = np.deg2rad(angle)
     def updateAx(self, axi):
-        self.ax = axi
-        if self.ax < self.brakeDecel:
-            self.brakeDecel = self.ax
+        self.acceleration = axi
+        if self.acceleration < self.brakeDecel:
+            self.brakeDecel = self.acceleration
+
+    '''# not currently used
     def useAccel(self):
         self.ax = self.axa
     def useDecel(self):
         self.ax = self.axd
         if self.ax < self.brakeDecel:
             self.brakeDecel = self.ax
+    '''
     def updateU(self, u):
         self.u = u
     def dynamicU(self):
@@ -141,47 +143,47 @@ class BaseModel(ABC):
 
     def solve_caster_angle(self):
         if self.velocity > 0 and self.centripetal_acceleration > 0:
-            self.rear_right_caster_angle = fsolve(self._r1_caster_angle, 0)[0]
-            self.front_right_caster_angle = fsolve(self._f1_caster_angle, 0)[0]
-            self.rear_left_caster_angle = fsolve(self._r2_caster_angle, 0)[0]
-            self.front_left_caster_angle = fsolve(self._f2_caster_angle, 0)[0]      
+            self._rear_right_caster_angle = fsolve(self._r1_caster_angle, 0)[0]
+            self._front_right_caster_angle = fsolve(self._f1_caster_angle, 0)[0]
+            self._rear_left_caster_angle = fsolve(self._r2_caster_angle, 0)[0]
+            self._front_left_caster_angle = fsolve(self._f2_caster_angle, 0)[0]      
         elif self.velocity > 0 and self.centripetal_acceleration < 0:
-            self.rear_right_caster_angle = fsolve(self._r1_caster_angle, 2*np.pi)[0]
-            self.front_right_caster_angle = fsolve(self._f1_caster_angle, 2*np.pi)[0]
-            self.rear_left_caster_angle = fsolve(self._r2_caster_angle, 2*np.pi)[0]
-            self.front_left_caster_angle = fsolve(self._f2_caster_angle, 2*np.pi)[0]                 
+            self._rear_right_caster_angle = fsolve(self._r1_caster_angle, 2*np.pi)[0]
+            self._front_right_caster_angle = fsolve(self._f1_caster_angle, 2*np.pi)[0]
+            self._rear_left_caster_angle = fsolve(self._r2_caster_angle, 2*np.pi)[0]
+            self._front_left_caster_angle = fsolve(self._f2_caster_angle, 2*np.pi)[0]                 
         elif self.velocity < 0 and self.centripetal_acceleration > 0:
-            self.rear_right_caster_angle = fsolve(self._r1_caster_angle, np.pi)[0]
-            self.front_right_caster_angle = fsolve(self._f1_caster_angle, np.pi)[0]
-            self.rear_left_caster_angle = fsolve(self._r2_caster_angle, np.pi)[0]
-            self.front_left_caster_angle = fsolve(self._f2_caster_angle, np.pi)[0]   
+            self._rear_right_caster_angle = fsolve(self._r1_caster_angle, np.pi)[0]
+            self._front_right_caster_angle = fsolve(self._f1_caster_angle, np.pi)[0]
+            self._rear_left_caster_angle = fsolve(self._r2_caster_angle, np.pi)[0]
+            self._front_left_caster_angle = fsolve(self._f2_caster_angle, np.pi)[0]   
         elif self.velocity < 0 and self.centripetal_acceleration < 0:
-            self.rear_right_caster_angle = fsolve(self._r1_caster_angle, np.pi)[0]
-            self.front_right_caster_angle = fsolve(self._f1_caster_angle, np.pi)[0]
-            self.rear_left_caster_angle = fsolve(self._r2_caster_angle, np.pi)[0]
-            self.front_left_caster_angle = fsolve(self._f2_caster_angle, np.pi)[0]   
+            self._rear_right_caster_angle = fsolve(self._r1_caster_angle, np.pi)[0]
+            self._front_right_caster_angle = fsolve(self._f1_caster_angle, np.pi)[0]
+            self._rear_left_caster_angle = fsolve(self._r2_caster_angle, np.pi)[0]
+            self._front_left_caster_angle = fsolve(self._f2_caster_angle, np.pi)[0]   
         elif self.velocity < 0 and self.centripetal_acceleration == 0:
-            self.rear_right_caster_angle = np.pi
-            self.front_right_caster_angle = np.pi
-            self.rear_left_caster_angle = np.pi
-            self.front_left_caster_angle = np.pi
+            self._rear_right_caster_angle = np.pi
+            self._front_right_caster_angle = np.pi
+            self._rear_left_caster_angle = np.pi
+            self._front_left_caster_angle = np.pi
         else:
-            self.rear_right_caster_angle = 0
-            self.front_right_caster_angle = 0
-            self.rear_left_caster_angle = 0
-            self.front_left_caster_angle = 0        
+            self._rear_right_caster_angle = 0
+            self._front_right_caster_angle = 0
+            self._rear_left_caster_angle = 0
+            self._front_left_caster_angle = 0        
 
     def _r1_caster_angle(self, x):
-        return (self.L + np.cos(x) * self.r) / (self.R + self.Dc - np.sin(x) * self.r) - np.tan(x)
+        return (self.L + np.cos(x) * self.r) / (self.R + self._caster_pivot_to_platform_center_y_Dc - np.sin(x) * self.r) - np.tan(x)
 
     def _r2_caster_angle(self, x):
-        return (self.L + np.cos(x) * self.r) / (self.R - self.Dc - np.sin(x) * self.r) - np.tan(x)
+        return (self.L + np.cos(x) * self.r) / (self.R - self._caster_pivot_to_platform_center_y_Dc - np.sin(x) * self.r) - np.tan(x)
 
     def _f1_caster_angle(self, x):
-        return (self.L - np.cos(x) * self.r) / (self.R + self.Dc + np.sin(x) * self.r) - np.tan(x)
+        return (self.L - np.cos(x) * self.r) / (self.R + self._caster_pivot_to_platform_center_y_Dc + np.sin(x) * self.r) - np.tan(x)
 
     def _f2_caster_angle(self, x):
-        return (self.L - np.cos(x) * self.r) / (self.R - self.Dc + np.sin(x) * self.r) - np.tan(x)
+        return (self.L - np.cos(x) * self.r) / (self.R - self._caster_pivot_to_platform_center_y_Dc + np.sin(x) * self.r) - np.tan(x)
 
     # from overall CG to payload CG
     def toPayloadCG(self, x, y, h):
@@ -201,7 +203,7 @@ class BaseModel(ABC):
 
     # input is payload CG location and overall CG location as list of [x, y, h]
     def toOverallJz(self, pp, po):
-        self.Jz = self.platform_mass * ((po[0]-self.pRobot[0])**2 + (po[1]-self.pRobot[1])**2) + self.JzRobot + (self.total_mass - self.platform_mass) * ((pp[0]-po[0])**2 + (pp[1]-po[1])**2) + self.JzPayload
+        self._Jz = self.platform_mass * ((po[0]-self.pRobot[0])**2 + (po[1]-self.pRobot[1])**2) + self.JzRobot + (self.total_mass - self.platform_mass) * ((pp[0]-po[0])**2 + (pp[1]-po[1])**2) + self._JzPayload
 
     def normalDriveCriterion(self, X):
         # Fc1 and Fc2 are allocated based normal force on each drive wheel
