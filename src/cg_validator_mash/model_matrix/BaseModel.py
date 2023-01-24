@@ -47,17 +47,19 @@ class BaseModel(ABC):
         self.l2 = self.L * (1-self.k) # caster to pivot pin
         self.h2 = 0.1 # back rocker pivot height
         self.h1 = 0.05 # front rocker pivot height
-        self.platform_mass = 140 # robot mass, prev 'Mrobot'
-        self.JzRobot = 32*self.platform_mass/223 # robot moment of inertia without payload
+        self._platform_mass = 140 # robot mass, prev 'Mrobot'
+        self._platform_moment_of_inertia_Jz = 0 #  32*self._platform_mass/223 # robot moment of inertia without payload, prev JzRobot
         self.payload_mass = 450 # payload mass, prev 'MPayload', now a property decorator
         # self.JzPayload = 43.28*self._payload_mass/600 # payload moment of inertia, no longer needed with payload_mass property decorator
         # self.total_mass = self._payload_mass+self.platform_mass # total mass, prev 'M', no longer needed with payload_mass property decorator
         # self.Jz = 85.3*self.total_mass/823 # robot with payload moment of inertia, no longer needed with payload_mass property decorator
         self._caster_pivot_to_platform_center_y_Dc = 0.465/2 # width from robot center to caster swivel center 
         self._drive_wheel_to_platform_center_y_Dd = 0.60553/2 # width from robot center to drive wheel center
-        self.robotH = 0.38 # robot height
+        self._platform_z = 0.38 # robot height
         self.ground_clearance = 0.04
-        self.pRobot = [0, 0, (self.robotH - self.ground_clearance) / 2 + self.ground_clearance] # robot center of mass position without payload in [x, y, z]
+        self._platform_cg = [0, 0, (self._platform_z - self.ground_clearance) / 2 + self.ground_clearance] # robot center of mass position without payload in [x, y, z]
+        self._payload_cg = []
+        self._combined_cg = []
         self.kr = 3.75 # stiffness of rear rocker and/or caster
         self.kf = 2.1 # for MD 1.63. Stiffness of front rocker and/or caster
         self.kk = self.kr/(self.kr+self.kf)
@@ -79,20 +81,46 @@ class BaseModel(ABC):
         self.Jz = 85.3*self.M/823
     '''
 
+    def update_total_mass(self):
+        self._combined_mass = self._platform_mass + self._payload_mass
+
+    def update_moments_of_inertia(self):
+        # not sure where these magic numbers come from
+        self._payload_moment_of_inertia = 43.28 * self._payload_mass / 823
+        self._platform_moment_of_inertia_Jz = 32 * self._platform_mass / 223
+        self._combined_moment_of_inertia_Jz = 85.3 * self._combined_mass / 823
+
+    def update_combined_cg(self):
+        try:
+            combined_x = self._payload_cg[0]*self._payload_mass/self._combined_mass + self._platform_cg[0]*self._platform_mass/self._combined_mass
+            combined_y = self._payload_cg[1]*self._payload_mass/self._combined_mass + self._platform_cg[1]*self._platform_mass/self._combined_mass
+            combined_z = self._payload_cg[2]*self._payload_mass/self._combined_mass + self._platform_cg[2]*self._platform_mass/self._combined_mass
+            self._combined_cg = (combined_x, combined_y, combined_z)
+        except:
+            # will throw exception on first initialization of variables if all haven't been initialized
+            self._combined_cg = (0,0,0)
+
     @property
     def payload_mass(self):
-        logger.debug(f'Get payload_mass')
         return self._payload_mass
 
-    # need to be ran before update overallCG, payloadCG and overallJz
     @payload_mass.setter
     def payload_mass(self, payload_mass):
-        logger.debug(f'Set payload_mass: {payload_mass}')
         self._payload_mass = payload_mass
-        self._total_mass = self._payload_mass+self._platform_mass
-        self._JzPayload = 43.28*self._payload_mass/600
-        self._Jz = 85.3*self._total_mass/823
+        self.update_total_mass()
+        self.update_combined_cg()
+        self.update_moments_of_inertia()
 
+    @property
+    def payload_cg(self):
+        return self._payload_cg
+
+    @payload_cg.setter
+    def payload_cg(self, payload_cg):
+        self._payload_cg = payload_cg
+        # now update combined cg
+        self.update_combined_cg()
+        self.update_moments_of_inertia()
 
     def updateK(self, ki):
         self.ROCKER_RATIO = ki
@@ -188,22 +216,22 @@ class BaseModel(ABC):
     # from overall CG to payload CG
     def toPayloadCG(self, x, y, h):
         lst = []
-        lst.append((x-self.pRobot[0])*self.platform_mass/(self.total_mass-self.platform_mass) + x)
-        lst.append((y-self.pRobot[1])*self.platform_mass/(self.total_mass-self.platform_mass) + y)
-        lst.append((h-self.pRobot[2])*self.platform_mass/(self.total_mass-self.platform_mass) + h)
+        lst.append((x-self._platform_cg[0])*self._platform_mass/(self.total_mass-self._platform_mass) + x)
+        lst.append((y-self._platform_cg[1])*self._platform_mass/(self.total_mass-self._platform_mass) + y)
+        lst.append((h-self._platform_cg[2])*self._platform_mass/(self.total_mass-self._platform_mass) + h)
         return lst
 
     # from payload CG to overall
     def toOverallCG(self, x, y, h):
         lst = []
-        lst.append(self.pRobot[0]*self.platform_mass/self.total_mass + x*(self.total_mass-self.platform_mass)/self.total_mass)
-        lst.append(self.pRobot[1]*self.platform_mass/self.total_mass + y*(self.total_mass-self.platform_mass)/self.total_mass)
-        lst.append(self.pRobot[2]*self.platform_mass/self.total_mass + h*(self.total_mass-self.platform_mass)/self.total_mass)
+        lst.append(self._platform_cg[0]*self._platform_mass/self.total_mass + x*(self.total_mass-self._platform_mass)/self.total_mass)
+        lst.append(self._platform_cg[1]*self._platform_mass/self.total_mass + y*(self.total_mass-self._platform_mass)/self.total_mass)
+        lst.append(self._platform_cg[2]*self._platform_mass/self.total_mass + h*(self.total_mass-self._platform_mass)/self.total_mass)
         return lst    
 
     # input is payload CG location and overall CG location as list of [x, y, h]
     def toOverallJz(self, pp, po):
-        self._Jz = self.platform_mass * ((po[0]-self.pRobot[0])**2 + (po[1]-self.pRobot[1])**2) + self.JzRobot + (self.total_mass - self.platform_mass) * ((pp[0]-po[0])**2 + (pp[1]-po[1])**2) + self._JzPayload
+        self._combined_moment_of_inertia_Jz = self._platform_mass * ((po[0]-self._platform_cg[0])**2 + (po[1]-self._platform_cg[1])**2) + self._platform_moment_of_inertia_Jz + (self.total_mass - self._platform_mass) * ((pp[0]-po[0])**2 + (pp[1]-po[1])**2) + self._JzPayload
 
     def normalDriveCriterion(self, X):
         # Fc1 and Fc2 are allocated based normal force on each drive wheel

@@ -5,6 +5,8 @@ from .BaseModel import BaseModel
 # CONSTANTS
 # LD250 platform mass [kg]
 PLATFORM_MASS = 146
+# default payload mass
+DEFAULT_PAYLOAD_MASS = 250
 # distance from center of drive wheel to front/rear caster pivot [m]
 DRIVE_WHEEL_TO_CASTER_PIVOT_L = 0.285
 # caster swivel radius, from caster pivot to caster wheel center [m]
@@ -32,7 +34,7 @@ DYNAMIC_FRICTION_COEFFICIENT = 0.63
 
 # fixed drive wheel down force and no rockers
 class LD250(BaseModel):
-    def __init__(self, payload_mass=250):
+    def __init__(self, payload_mass=DEFAULT_PAYLOAD_MASS):
         # BaseModel.__init__(self)
         self.name = 'LD250'
         # Fixed robot parameters LD250
@@ -106,7 +108,7 @@ class LD250(BaseModel):
                         [0,			0,		0,		0,		0,	0,	0,	0,	0,	0,	0,	0,	0,	-self._caster_resistance_coefficient,	1],
                         [0,		    0,	    0,	    0,      1,	0,	0,	0,	0,	0,	0,	0,	0,	0,			0],
                         [0,			0,		0,		0,		0,	0,	0,	1,	0,	0,	0,	0,	0,	0,			0]])
-        Y = np.array([[self._total_mass*(self.acceleration*(self.R-y)/self.R - self.w**2*x) + self._total_mass*self._g*np.sin(self.theta)], [self._total_mass*(self.w**2*(self.R-y) + self.acceleration*x/self.R)], [self._total_mass*self._g*np.cos(self.theta)],[0], [0], [self._Jz*alphaz],[0],[0],[0],[0],[0],[0],[0],[self.downForce],[self.downForce]])
+        Y = np.array([[self._combined_mass*(self.acceleration*(self.R-y)/self.R - self.w**2*x) + self._combined_mass*self._g*np.sin(self.theta)], [self._combined_mass*(self.w**2*(self.R-y) + self.acceleration*x/self.R)], [self._combined_mass*self._g*np.cos(self.theta)],[0], [0], [self._combined_moment_of_inertia_Jz*alphaz],[0],[0],[0],[0],[0],[0],[0],[self.downForce],[self.downForce]])
         # [Frz1;Frf1;Frz2;Frf2;Fdz1;Fdf1;Fdt1;Fdz2;Fdf2;Fdt2;Fc;Ffz1;Fff1;Ffz2;Fff2];
         #     0;    1;  2;   3;   4;   5;   6;   7;   8;   9;10;  11;  12;  13;  14  
         return np.linalg.solve(Mk,Y)
@@ -118,12 +120,12 @@ class LD250(BaseModel):
             ux = 0.95
         else:
             ux = 1
-        Mk = np.array( [[0,	-np.cos(self._rear_right_caster_angle),	0,	-np.cos(self._rear_left_caster_angle),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self._front_right_caster_angle),	0,	-np.cos(self._front_left_caster_angle), -self._total_mass, 0, 0],
-                        [0,		np.sin(self._rear_right_caster_angle),	0,	np.sin(self._rear_left_caster_angle),	0,	0,	0,	0,	0,	0,	1,	0,	-np.sin(self._front_right_caster_angle),	0, 	-np.sin(self._front_left_caster_angle), 0, -self._total_mass, 0],
+        Mk = np.array( [[0,	-np.cos(self._rear_right_caster_angle),	0,	-np.cos(self._rear_left_caster_angle),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self._front_right_caster_angle),	0,	-np.cos(self._front_left_caster_angle), -self._combined_mass, 0, 0],
+                        [0,		np.sin(self._rear_right_caster_angle),	0,	np.sin(self._rear_left_caster_angle),	0,	0,	0,	0,	0,	0,	1,	0,	-np.sin(self._front_right_caster_angle),	0, 	-np.sin(self._front_left_caster_angle), 0, -self._combined_mass, 0],
                         [1,		0,	   1,	0,	  1,	0,	0,	1,	0,	0,	0,	1,	0,	  1,		0, 0, 0, 0],
                         [-(self._caster_pivot_to_platform_center_y_Dc-self.r*np.sin(self._rear_right_caster_angle)+y),	np.sin(self._rear_right_caster_angle)*h,		self._caster_pivot_to_platform_center_y_Dc+self.r*np.sin(self._rear_left_caster_angle)-y,	np.sin(self._rear_left_caster_angle)*h,		-(self._drive_wheel_to_platform_center_y_Dd+y),	0,	0,	self._drive_wheel_to_platform_center_y_Dd-y,	0,	0,	h,	-(self._caster_pivot_to_platform_center_y_Dc+self.r*np.sin(self._front_right_caster_angle)+y),	-np.sin(self._front_right_caster_angle)*h,		self._caster_pivot_to_platform_center_y_Dc-np.sin(self._front_left_caster_angle)*self.r-y,		-np.sin(self._front_left_caster_angle)*h, 0, 0, 0],
                         [self.L+self.r*np.cos(self._rear_right_caster_angle)+x,	np.cos(self._rear_right_caster_angle)*h,		self.L+self.r*np.cos(self._rear_left_caster_angle)+x,	np.cos(self._rear_left_caster_angle)*h,		x,	h,	-h,	x,	h,	-h,	0,	-(self.L-self.r*np.cos(self._front_right_caster_angle)-x),	np.cos(self._front_right_caster_angle)*h,		-(self.L-self.r*np.cos(self._front_left_caster_angle)-x),	np.cos(self._front_left_caster_angle)*h, 0, 0, 0],
-                        [0,		-np.cos(self._rear_right_caster_angle)*(self._caster_pivot_to_platform_center_y_Dc-self.r*np.sin(self._rear_right_caster_angle)+y)-np.sin(self._rear_right_caster_angle)*(self.L+np.cos(self._rear_right_caster_angle)*self.r+x),	0,	np.cos(self._rear_left_caster_angle)*(self._caster_pivot_to_platform_center_y_Dc+self.r*np.sin(self._rear_left_caster_angle)-y)-np.sin(self._rear_left_caster_angle)*(self.L+np.cos(self._rear_left_caster_angle)*self.r+x),	0,	-(self._drive_wheel_to_platform_center_y_Dd+y),	self._drive_wheel_to_platform_center_y_Dd+y,	0,	self._drive_wheel_to_platform_center_y_Dd-y,	-(self._drive_wheel_to_platform_center_y_Dd-y),	-x,	0,	-np.cos(self._front_right_caster_angle)*(self._caster_pivot_to_platform_center_y_Dc+self.r*np.sin(self._front_right_caster_angle)+y)-np.sin(self._front_right_caster_angle)*(self.L-np.cos(self._front_right_caster_angle)*self.r-x),	0,	np.cos(self._front_left_caster_angle)*(self._caster_pivot_to_platform_center_y_Dc-self.r*np.sin(self._front_left_caster_angle)-y)-np.sin(self._front_left_caster_angle)*(self.L-np.cos(self._front_left_caster_angle)*self.r-x),0,	0, -self._Jz],
+                        [0,		-np.cos(self._rear_right_caster_angle)*(self._caster_pivot_to_platform_center_y_Dc-self.r*np.sin(self._rear_right_caster_angle)+y)-np.sin(self._rear_right_caster_angle)*(self.L+np.cos(self._rear_right_caster_angle)*self.r+x),	0,	np.cos(self._rear_left_caster_angle)*(self._caster_pivot_to_platform_center_y_Dc+self.r*np.sin(self._rear_left_caster_angle)-y)-np.sin(self._rear_left_caster_angle)*(self.L+np.cos(self._rear_left_caster_angle)*self.r+x),	0,	-(self._drive_wheel_to_platform_center_y_Dd+y),	self._drive_wheel_to_platform_center_y_Dd+y,	0,	self._drive_wheel_to_platform_center_y_Dd-y,	-(self._drive_wheel_to_platform_center_y_Dd-y),	-x,	0,	-np.cos(self._front_right_caster_angle)*(self._caster_pivot_to_platform_center_y_Dc+self.r*np.sin(self._front_right_caster_angle)+y)-np.sin(self._front_right_caster_angle)*(self.L-np.cos(self._front_right_caster_angle)*self.r-x),	0,	np.cos(self._front_left_caster_angle)*(self._caster_pivot_to_platform_center_y_Dc-self.r*np.sin(self._front_left_caster_angle)-y)-np.sin(self._front_left_caster_angle)*(self.L-np.cos(self._front_left_caster_angle)*self.r-x),0,	0, -self._combined_moment_of_inertia_Jz],
                         [-(self._caster_pivot_to_platform_center_y_Dc-self.r*np.sin(self._rear_right_caster_angle)+y),	self.kk*np.sin(self._rear_right_caster_angle)*h,			self._caster_pivot_to_platform_center_y_Dc+self.r*np.sin(self._rear_left_caster_angle)-y,	self.kk*np.sin(self._rear_left_caster_angle)*h,			-(self._drive_wheel_to_platform_center_y_Dd+y),	0,	0,	self._drive_wheel_to_platform_center_y_Dd-y,	0,	0,	self.kk*h,	0,			-self.kk*np.sin(self._front_right_caster_angle)*h,		0,			-self.kk*np.sin(self._front_left_caster_angle)*h,		0,	0,	0],
                         [-self._caster_resistance_coefficient,		1,		0,		0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
                         [0,			0,		-self._caster_resistance_coefficient,	1,	    0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
@@ -136,7 +138,7 @@ class LD250(BaseModel):
                         [0,		    0,		0,	    0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,		0, 0, 1,-x],
                         [0,		    0,	    0,	    0,      1,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,  0, 0, 0],
                         [0,			0,		0,		0,		0,	0,	0,	1,	0,	0,	0,	0,	0,	0,	0,  0, 0, 0]])
-        Y = np.array([[self._total_mass*self._g*np.sin(self.theta)], [0], [self._total_mass*self._g*np.cos(self.theta)],[0], [0], [0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[self.w**2*(self.R-y)],[self.downForce],[self.downForce]])
+        Y = np.array([[self._combined_mass*self._g*np.sin(self.theta)], [0], [self._combined_mass*self._g*np.cos(self.theta)],[0], [0], [0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[self.w**2*(self.R-y)],[self.downForce],[self.downForce]])
         # [Frz1;Frf1;Frz2;Frf2;Fdz1;Fdf1;Fdt1;Fdz2;Fdf2;Fdt2;Fc;Ffz1;Fff1;Ffz2;Fff2;aCGx;aCGy;alphaZ];
         #     0;   1;  2;   3;   4;   5;   6;   7;   8;   9;10;  11;  12;  13;  14;  15;  16;    17  
         self.staticU()

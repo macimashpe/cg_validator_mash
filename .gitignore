@@ -2,3 +2,6 @@
 log.log
 matrix_log.log
 *.pyc
+src/cg_validator_mash/model_matrix/__pycache__/BaseModel.cpython-310.pyc
+src/cg_validator_mash/model_matrix/__pycache__/Model_LD250.cpython-310.pyc
+src/cg_validator_mash/model_matrix/__pycache__/Model_MD.cpython-310.pyc

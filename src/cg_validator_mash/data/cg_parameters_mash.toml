@@ -9,8 +9,8 @@
 
 # payload center of gravity, [mm]
 # origin of coordinate system: on the floor, midpoint between the two drive wheels
-# x axis is defined as transverse, orthogonal to direction of forward motion
-# y axis is direction of forward motion
+# x axis is direction of forward motion
+# y axis is defined as transverse, orthogonal to direction of forward motion
 # z axis is height direction
 [payload.cg]
 "x" = 0

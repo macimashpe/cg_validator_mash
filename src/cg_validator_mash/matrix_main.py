@@ -27,8 +27,14 @@ def main():
     payload_mass = cfg_data['payload']['mass']
     ld_robot = Model_LD250.LD250(payload_mass)
 
-    test = ld_robot.modelNoBrake(0,0,0)
-    test2 = ld_robot.normalDriveCriterion(test)
+    # test all possible payload cg locations
+    for payload_cg_x in range(10):
+        for payload_cg_y in range(10):
+            for payload_cg_z in range(10):
+                ld_robot.payload_cg = (payload_cg_x, payload_cg_y, payload_cg_z)
+                wheel_forces = ld_robot.modelNoBrake(*ld_robot._combined_cg)
+                valid = ld_robot.normalDriveCriterion(wheel_forces)
+                print(f'payload cg is: {ld_robot.payload_cg}. combined cg is: {ld_robot._combined_cg}. valid is {valid}')
     pass
 
 if __name__ == "__main__":
