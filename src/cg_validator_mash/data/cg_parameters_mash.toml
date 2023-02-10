@@ -24,6 +24,12 @@
 
 [misc]
 
+# range of cg x, y, z, values to check. (taken from run_updated.py)
+"cg_range_x" = 0.5
+"cg_range_y" = 0.4
+"cg_range_z" = 3
+"cg_range_step" = 0.05
+
 # coefficient of friction between wheel and ground surface
 "coef_friction" = 0.5
 

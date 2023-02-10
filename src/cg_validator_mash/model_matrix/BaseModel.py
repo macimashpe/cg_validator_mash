@@ -26,12 +26,12 @@ class BaseModel(ABC):
         self.theta = np.deg2rad(0) # ramp angle
         # self.axa = 0.8 # acceleration in m/s^2
         # self.axd = -1.2 # deceleration in m/s^2
-        self.acceleration = 0.8 #  prev self.axa
+        self._acceleration = 0.8 #  prev self.axa
         self.brakeDecel = -1.3 # brake decel should be larger than 1.3
         self.centripetal_acceleration = 0.5 # centripetal accel, prev ac
-        self.velocity = 1.2 # robot center velocity
-        self.R = self.velocity**2/self.centripetal_acceleration # robot trajactory radius
-        self.w = self.velocity / self.R # robot angular velocity
+        self._velocity = 1.2 # robot center velocity
+        self.R = self._velocity**2/self.centripetal_acceleration # robot trajactory radius
+        self.w = self._velocity / self.R # robot angular velocity
         self.urc = 0.024 # rolling resistance coefficiency for casters
         self.urd = 0.026 # rolling resistance coefficiency for drive wheel
         self.g = 9.81
@@ -101,6 +101,30 @@ class BaseModel(ABC):
             self._combined_cg = (0,0,0)
 
     @property
+    def velocity(self):
+        return self._velocity
+
+    @velocity.setter
+    def velocity(self, velocity):
+        self._velocity = velocity
+        self.cornering(self.centripetal_acceleration)
+        if self._velocity > 0:
+            self.dir = 1
+        else:
+            self.dir = -1
+
+    def cornering(self, ac=0.0):
+        if  ac != 0.0:
+            self.centripetal_acceleration = ac
+            self.R = self.velocity**2/self.centripetal_acceleration
+            self.w = self.velocity / self.R
+        else:
+            self.centripetal_acceleration = 0
+            self.w = 0
+            self.R = 9999999
+        self.solve_caster_angle()
+
+    @property
     def payload_mass(self):
         return self._payload_mass
 
@@ -128,10 +152,16 @@ class BaseModel(ABC):
         self.l2 = self.L * (1-self.ROCKER_RATIO)
     def updateRampAngle(self, angle):
         self.theta = np.deg2rad(angle)
-    def updateAx(self, axi):
-        self.acceleration = axi
-        if self.acceleration < self.brakeDecel:
-            self.brakeDecel = self.acceleration
+
+    @property
+    def acceleration(self):
+        return self._acceleration
+    
+    @acceleration.setter
+    def acceleration(self, axi):
+        self._acceleration = axi
+        if self._acceleration < self.brakeDecel:
+            self.brakeDecel = self._acceleration
 
     '''# not currently used
     def useAccel(self):
@@ -152,8 +182,8 @@ class BaseModel(ABC):
     def cornering(self, ac=0.5):
         if ac and ac != 0.0:
             self.centripetal_acceleration = ac
-            self.R = self.velocity**2/self.centripetal_acceleration
-            self.w = self.velocity / self.R
+            self.R = self._velocity**2/self.centripetal_acceleration
+            self.w = self._velocity / self.R
         else:
             self.centripetal_acceleration = 0
             self.w = 0
@@ -162,35 +192,35 @@ class BaseModel(ABC):
     
     # speed in m/s
     def updateSpeed(self, speed):
-        self.velocity = speed
+        self._velocity = speed
         self.cornering(self.centripetal_acceleration)
-        if self.velocity >= 0:
+        if self._velocity >= 0:
             self.dir = 1
         else:
             self.dir = -1
 
     def solve_caster_angle(self):
-        if self.velocity > 0 and self.centripetal_acceleration > 0:
+        if self._velocity > 0 and self.centripetal_acceleration > 0:
             self._rear_right_caster_angle = fsolve(self._r1_caster_angle, 0)[0]
             self._front_right_caster_angle = fsolve(self._f1_caster_angle, 0)[0]
             self._rear_left_caster_angle = fsolve(self._r2_caster_angle, 0)[0]
             self._front_left_caster_angle = fsolve(self._f2_caster_angle, 0)[0]      
-        elif self.velocity > 0 and self.centripetal_acceleration < 0:
+        elif self._velocity > 0 and self.centripetal_acceleration < 0:
             self._rear_right_caster_angle = fsolve(self._r1_caster_angle, 2*np.pi)[0]
             self._front_right_caster_angle = fsolve(self._f1_caster_angle, 2*np.pi)[0]
             self._rear_left_caster_angle = fsolve(self._r2_caster_angle, 2*np.pi)[0]
             self._front_left_caster_angle = fsolve(self._f2_caster_angle, 2*np.pi)[0]                 
-        elif self.velocity < 0 and self.centripetal_acceleration > 0:
+        elif self._velocity < 0 and self.centripetal_acceleration > 0:
             self._rear_right_caster_angle = fsolve(self._r1_caster_angle, np.pi)[0]
             self._front_right_caster_angle = fsolve(self._f1_caster_angle, np.pi)[0]
             self._rear_left_caster_angle = fsolve(self._r2_caster_angle, np.pi)[0]
             self._front_left_caster_angle = fsolve(self._f2_caster_angle, np.pi)[0]   
-        elif self.velocity < 0 and self.centripetal_acceleration < 0:
+        elif self._velocity < 0 and self.centripetal_acceleration < 0:
             self._rear_right_caster_angle = fsolve(self._r1_caster_angle, np.pi)[0]
             self._front_right_caster_angle = fsolve(self._f1_caster_angle, np.pi)[0]
             self._rear_left_caster_angle = fsolve(self._r2_caster_angle, np.pi)[0]
             self._front_left_caster_angle = fsolve(self._f2_caster_angle, np.pi)[0]   
-        elif self.velocity < 0 and self.centripetal_acceleration == 0:
+        elif self._velocity < 0 and self.centripetal_acceleration == 0:
             self._rear_right_caster_angle = np.pi
             self._front_right_caster_angle = np.pi
             self._rear_left_caster_angle = np.pi
@@ -240,7 +270,7 @@ class BaseModel(ABC):
         # Vector sum of traction and centripetal force
         Ftf1 = np.sqrt(Fc1**2 + X[6]**2)
         Ftf2 = np.sqrt(Fc2**2 + X[9]**2)
-        if (self.velocity > 0 and self.centripetal_acceleration > 0) or (self.velocity < 0 or self.centripetal_acceleration < 0):
+        if (self._velocity > 0 and self.centripetal_acceleration > 0) or (self._velocity < 0 or self.centripetal_acceleration < 0):
             self.maxDriveF = self.maxDriveAccelF
         else:
             self.maxDriveF = self.maxDriveDecelF
@@ -252,7 +282,7 @@ class BaseModel(ABC):
         Fc2 = X[10] * X[7] / (X[4] + X[7])
         Ftf1 = np.sqrt(Fc1**2 + X[6]**2)
         Ftf2 = np.sqrt(Fc2**2 + X[9]**2)
-        if (self.velocity > 0 and self.centripetal_acceleration > 0) or (self.velocity < 0 or self.centripetal_acceleration < 0):
+        if (self._velocity > 0 and self.centripetal_acceleration > 0) or (self._velocity < 0 or self.centripetal_acceleration < 0):
             self.maxDriveF = self.maxDriveAccelF
         else:
             self.maxDriveF = self.maxDriveDecelF

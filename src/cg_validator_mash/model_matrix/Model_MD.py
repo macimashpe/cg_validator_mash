@@ -2,37 +2,41 @@ import numpy as np
 
 from .BaseModel import BaseModel
 
+DRIVE_WHEEL_TO_CASTER_PIVOT_L = 0.405
+CASTER_SWIVEL_RADIUS_r = 0.058
+ROCKER_RATIO_k = 0.48
+
 class MD(BaseModel):
-    def __init__(self, payloadM=650):
+    def __init__(self, payload_mass=650):
         BaseModel.__init__(self)
         self.name = 'MD'
-        self.v = 2.2  # robot vel max is 2.2 now
-        self.updateSpeed(self.v)
+        self.velocity = 2.2  # robot vel max is 2.2 now
+        # self.updateSpeed(self._velocity)  # not needed with velocity property decorator
         self.brakeDecel = -1.3 # defined as max
-        self.L = 0.405  # POC2: 0.370 # drive wheel to swivel center
-        self.r = 0.058  # POC2: 0.04 # caster swivel radius
-        self.k = 0.48  # POC2: 130/370 # rocker ratio
+        self.L = DRIVE_WHEEL_TO_CASTER_PIVOT_L  # POC2: 0.370 # drive wheel to swivel center
+        self.r = CASTER_SWIVEL_RADIUS_r  # POC2: 0.04 # caster swivel radius
+        self.k = ROCKER_RATIO_k  # POC2: 130/370 # rocker ratio
+        self.l1 = self.L * self.k
+        self.l2 = self.L * (1-self.k)
         self.h1 = 0.05   # rear rocker pivot pin height from the ground
         self.h2 = 0.11  #  pivot pin height from the ground
         self.axa = 0.5  # acceleration in m/s^2
         self.ax = self.axa
         self.axd = -1.3  # deceleration in m/s^2
-        self.ac = 0.5  # centripetal accel
-        self.R = self.v ** 2 / self.ac  # robot trajactory radius
-        self.w = self.v / self.R  # robot angular velocity
-        # no knowledge on the following...
+        self.centripetal_acceleration = 0.5  # centripetal accel
+        self.R = self._velocity ** 2 / self.centripetal_acceleration  # robot trajactory radius
+        self.w = self._velocity / self.R  # robot angular velocity
+        '''# no knowledge on the following...
         # self.maxBrakeF = 99999  # Max Braking force
         # self.maxDriveF = 99999  # Max motor drive force
         # self.maxDriveDecelF = 99999  # Max motor force during decel
         # self.maxDriveAccelF = 99999  # Max motor force furing accel
         # self.L = 0.405 # POC2: 0.370
         # self.r = 0.058 # POC2: 0.04
-        # self.k = 0.48 # POC2: 130/370
-        self.l1 = self.L * self.k
-        self.l2 = self.L * (1-self.k)
+        # self.k = 0.48 # POC2: 130/370'''
         # self.h2 = 0.1
         # self.h1 = 0.05
-        self.Mpayload = payloadM
+        self.Mpayload = payload_mass
         self.Mrobot = 239 # shen = 230
         self.M = self.Mpayload+self.Mrobot
         self.Dc = 0.292875  #0.294  # caster swivel center to robot center distance in y direction
@@ -57,7 +61,7 @@ class MD(BaseModel):
 
     # xyh here is the overall CG
     def modelNoBrake(self,x,y,h):
-        if self.ac != 0:
+        if self.centripetal_acceleration != 0:
             alphaz = self.ax/self.R
         else:
             alphaz = 0
@@ -99,7 +103,7 @@ class MD(BaseModel):
     # xyh here is the overall CG
     # Assuming brake torque is large enough, the robot will slide
     def modelBrake_lock(self, x,y,h):
-        if self.ac != 0:
+        if self.centripetal_acceleration != 0:
             ux = 0.95
         else:
             ux = 1

@@ -71,7 +71,7 @@ class LD250(BaseModel):
         self.maxDriveDecelF = self.maxDriveAccelF * 3 # because of the gear box, decel force is larger than the accel force under same motor current
 
         self.velocity = 2.2
-        self.acceleration = 0.8
+        self._acceleration = 0.8
         self.centripetal_acceleration = 1
         self.R = self.velocity**2/self.centripetal_acceleration # robot trajectory radius
         self.w = self.velocity / self.R # robot angular velocity
@@ -90,7 +90,7 @@ class LD250(BaseModel):
     # xyh here is the overall CG
     def modelNoBrake(self, x,y,h):
         if self.centripetal_acceleration != 0:
-            alphaz = self.acceleration/self.R
+            alphaz = self._acceleration/self.R
         else:
             alphaz = 0
         Mk = np.array( [[0,	-np.cos(self._rear_right_caster_angle),	0,	-np.cos(self._rear_left_caster_angle),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self._front_right_caster_angle),	0,	-np.cos(self._front_left_caster_angle)],
@@ -108,7 +108,7 @@ class LD250(BaseModel):
                         [0,			0,		0,		0,		0,	0,	0,	0,	0,	0,	0,	0,	0,	-self._caster_resistance_coefficient,	1],
                         [0,		    0,	    0,	    0,      1,	0,	0,	0,	0,	0,	0,	0,	0,	0,			0],
                         [0,			0,		0,		0,		0,	0,	0,	1,	0,	0,	0,	0,	0,	0,			0]])
-        Y = np.array([[self._combined_mass*(self.acceleration*(self.R-y)/self.R - self.w**2*x) + self._combined_mass*self._g*np.sin(self.theta)], [self._combined_mass*(self.w**2*(self.R-y) + self.acceleration*x/self.R)], [self._combined_mass*self._g*np.cos(self.theta)],[0], [0], [self._combined_moment_of_inertia_Jz*alphaz],[0],[0],[0],[0],[0],[0],[0],[self.downForce],[self.downForce]])
+        Y = np.array([[self._combined_mass*(self._acceleration*(self.R-y)/self.R - self.w**2*x) + self._combined_mass*self._g*np.sin(self.theta)], [self._combined_mass*(self.w**2*(self.R-y) + self._acceleration*x/self.R)], [self._combined_mass*self._g*np.cos(self.theta)],[0], [0], [self._combined_moment_of_inertia_Jz*alphaz],[0],[0],[0],[0],[0],[0],[0],[self.downForce],[self.downForce]])
         # [Frz1;Frf1;Frz2;Frf2;Fdz1;Fdf1;Fdt1;Fdz2;Fdf2;Fdt2;Fc;Ffz1;Fff1;Ffz2;Fff2];
         #     0;    1;  2;   3;   4;   5;   6;   7;   8;   9;10;  11;  12;  13;  14  
         return np.linalg.solve(Mk,Y)
@@ -116,7 +116,7 @@ class LD250(BaseModel):
     # xyh here is the overall CG
     def modelBrake(self, x,y,h):
         self.dynamicU()
-        if self.ac != 0:
+        if self.centripetal_acceleration != 0:
             ux = 0.95
         else:
             ux = 1
