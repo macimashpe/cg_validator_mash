@@ -123,34 +123,61 @@ def main():
                 #     continue
                 # logger.debug(f'acc4 valid')
 
+                # used when checking AND of all vel/accs
                 # logger.debug(f'payload cg is: {ld_robot.payload_cg}. combined cg is: {ld_robot._combined_cg}. valid is {valid}')
-                stable_cgs.append((payload_cg_x, payload_cg_y, payload_cg_z))
-                if payload_cg_z > temp_highest_z:
-                    temp_highest_z = payload_cg_z
-            highest_z_at_xy[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z)
+                # stable_cgs.append((payload_cg_x, payload_cg_y, payload_cg_z))
+                # if payload_cg_z > temp_highest_z:
+                #     temp_highest_z = payload_cg_z
+            highest_z_at_xy_0[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z_0)
+            highest_z_at_xy_1[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z_1)
+            highest_z_at_xy_2[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z_2)
+            highest_z_at_xy_3[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z_3)
+            highest_z_at_xy_4[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z_4)
+            highest_z_at_xy_5[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z_5)
+            highest_z_at_xy_6[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z_6)
+            highest_z_at_xy_7[(payload_cg_x, payload_cg_y)] = (xi, yi, temp_highest_z_7)
     pass
 
     X, Y = np.meshgrid(cg_range_x, cg_range_y)
-    Z = np.zeros(X.shape)
-    for coords, z_info in highest_z_at_xy.items():
-        xi = z_info[0]
-        yi = z_info[1]
-        temp_highest_z = z_info[2]
-        Z[yi][xi] = temp_highest_z
-    pass
+    Z_0 = np.zeros(X.shape)
+    for coords, index_info in highest_z_at_xy_0.items():
+        xi = index_info[0]
+        yi = index_info[1]
+        temp_highest_z = index_info[2]
+        Z_0[yi][xi] = temp_highest_z
+    Z_1 = np.zeros(X.shape)
+    for coords, index_info in highest_z_at_xy_1.items():
+        xi = index_info[0]
+        yi = index_info[1]
+        temp_highest_z = index_info[2]
+        Z_1[yi][xi] = temp_highest_z
+    Z_2 = np.zeros(X.shape)
+    for coords, index_info in highest_z_at_xy_2.items():
+        xi = index_info[0]
+        yi = index_info[1]
+        temp_highest_z = index_info[2]
+        Z_2[yi][xi] = temp_highest_z
+    Z_3 = np.zeros(X.shape)
+    for coords, index_info in highest_z_at_xy_3.items():
+        xi = index_info[0]
+        yi = index_info[1]
+        temp_highest_z = index_info[2]
+        Z_3[yi][xi] = temp_highest_z
 
     # fig = plt.figure()
     # ax = plt.axes(projection='3d')
-    fig, ax = plt.subplot(2, 4)
+    fig, ax = plt.subplots(2, 4, subplot_kw=dict(projection='3d'))
     # ax.scatter(cg_xs, cg_ys, cg_zs)
-    ax[0, 0].plot_surface(X, Y, Z, alpha=0.75, shade=True, color='orange')
+    ax[0, 0].plot_surface(X, Y, Z_0, alpha=0.75, shade=True)
+    ax[0, 1].plot_surface(X, Y, Z_1, alpha=0.75, shade=True)
+    ax[0, 2].plot_surface(X, Y, Z_2, alpha=0.75, shade=True)
+    ax[0, 3].plot_surface(X, Y, Z_3, alpha=0.75, shade=True)
     ax[0, 0].scatter([0], [0], [1], color='r')
     plt.show()
 
-    with open('stable_cg_locations', 'w') as outfile:
-        for stable_cg in stable_cgs:
-            outfile.write(f'{str(stable_cg)}\n')
-    pass
+    # with open('stable_cg_locations', 'w') as outfile:
+    #     for stable_cg in stable_cgs:
+    #         outfile.write(f'{str(stable_cg)}\n')
 
 if __name__ == "__main__":
     main()
