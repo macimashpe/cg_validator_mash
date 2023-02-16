@@ -108,10 +108,11 @@ class BaseModel(ABC):
     def velocity(self, velocity):
         self._velocity = velocity
         self.cornering(self.centripetal_acceleration)
-        if self._velocity > 0:
-            self.dir = 1
-        else:
-            self.dir = -1
+        self.dir = 1 if self._velocity > 0 else -1
+        # if self._velocity > 0:
+        #     self.dir = 1
+        # else:
+        #     self.dir = -1
 
     def cornering(self, ac=0.0):
         if  ac != 0.0:

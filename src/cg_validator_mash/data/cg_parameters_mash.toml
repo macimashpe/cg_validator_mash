@@ -28,7 +28,7 @@
 "cg_range_x" = 0.5
 "cg_range_y" = 0.4
 "cg_range_z" = 3
-"cg_range_step" = 0.05
+"cg_range_step" = 0.1
 
 # coefficient of friction between wheel and ground surface
 "coef_friction" = 0.5
@@ -56,28 +56,28 @@
 # =============================================================================
 
 # dimensions taken from "LD-250 - Mechanical and Electrical Guidelines - Rev2.pptx"
-[LD.dimensions]
+# [LD.dimensions]
 # length, from front to back [mm]
-"length" = 969
+#"length" = 969
 # width, from drive wheel to drive wheel, including light discs [mm]
-"width" = 721
+#"width" = 721
 # height, from floor to cover plate [mm]
-"height" = 382
+#"height" = 382
 # mass, in kg
-"mass" = 250  # previously 142 kg
+#"mass" = 250  # previously 142 kg
 # all below physical definitions are taken from karthick's code (...DO_NOT_DELETE.py)
-"caster_swivel" = 32		# [mm]
-"platform_cg_x" = 0			# [mm]
-"platform_cg_y" = -44.9		# [mm]
-"platform_cg_z" = 178.3		# [mm]
-"platform_mass" = 142			# [kg]
-"front_caster_x" = 232.5			#(mm) x-coordinate of the Swivel point of front caster   
-"front_caster_y" = 285			#(mm) y-coordinate of the Swivel point of front caster  
+#"caster_swivel" = 32		# [mm]
+#"platform_cg_x" = 0			# [mm]
+#"platform_cg_y" = -44.9		# [mm]
+#"platform_cg_z" = 178.3		# [mm]
+#"platform_mass" = 142			# [kg]
+#"front_caster_x" = 232.5			#(mm) x-coordinate of the Swivel point of front caster   
+#"front_caster_y" = 285			#(mm) y-coordinate of the Swivel point of front caster  
 # "front_caster_y_minus" = front_caster_y-caster_swivel		#(mm) wheel behind the caster mounting point (moving forward)
 # "front_caster_y_plus" = front_caster_y+caster_swivel		#(mm) wheel in front of caster mounting point(moving backward)
-"rear_caster_x" = 232.5		#(mm)x-coordinate of the Swivel point of rear caster 
-"rear_caster_y" = -285		#(mm) y-coordinate of the Swivel point of rear caster
+#"rear_caster_x" = 232.5		#(mm)x-coordinate of the Swivel point of rear caster 
+#"rear_caster_y" = -285		#(mm) y-coordinate of the Swivel point of rear caster
 # "rear_caster_y_minus" = rear_caster_y-caster_swivel		#(mm) wheel behind the caster mounting point (moving forward)
 # "rear_caster_y_plus" = rear_caster_y+caster_swivel		#(mm) wheel in front of caster mounting point(moving backward)
-"drive_wheel_x" = 301.8		#(mm)
-"drive_wheel_y" = 0			#(mm)
+#"drive_wheel_x" = 301.8		#(mm)
+#"drive_wheel_y" = 0			#(mm)

@@ -5,6 +5,11 @@ from .BaseModel import BaseModel
 DRIVE_WHEEL_TO_CASTER_PIVOT_L = 0.405
 CASTER_SWIVEL_RADIUS_r = 0.058
 ROCKER_RATIO_k = 0.48
+PIVOT_PIN_HEIGHT_h1 = 0.05
+REAR_ROCKER_PIVOT_PIN_HEIGHT_h2 = 0.11
+CASTER_PIVOT_TO_PLATFORM_CENTER_Y_Dc = 0.292875
+DRIVE_WHEEL_TO_PLATFORM_CENTER_Y_Dd = 0.3189
+PLATFORM_Z = 0.320
 
 class MD(BaseModel):
     def __init__(self, payload_mass=650):
@@ -18,8 +23,8 @@ class MD(BaseModel):
         self.k = ROCKER_RATIO_k  # POC2: 130/370 # rocker ratio
         self.l1 = self.L * self.k
         self.l2 = self.L * (1-self.k)
-        self.h1 = 0.05   # rear rocker pivot pin height from the ground
-        self.h2 = 0.11  #  pivot pin height from the ground
+        self.h1 = PIVOT_PIN_HEIGHT_h1   # rear rocker pivot pin height from the ground
+        self.h2 = REAR_ROCKER_PIVOT_PIN_HEIGHT_h2  #  pivot pin height from the ground
         self.axa = 0.5  # acceleration in m/s^2
         self.ax = self.axa
         self.axd = -1.3  # deceleration in m/s^2
@@ -36,15 +41,15 @@ class MD(BaseModel):
         # self.k = 0.48 # POC2: 130/370'''
         # self.h2 = 0.1
         # self.h1 = 0.05
-        self.Mpayload = payload_mass
-        self.Mrobot = 239 # shen = 230
-        self.M = self.Mpayload+self.Mrobot
-        self.Dc = 0.292875  #0.294  # caster swivel center to robot center distance in y direction
-        self.Dd = 0.3189  #0.315  # drive wheel center to robot center distance in y direction
-        self.robotH = 0.320
-        self.pRobot = [0, 0, (self.robotH - 0.04) / 2 + 0.04]
-        self.JzRobot = 39.32*self.Mrobot/223
-        self.JzPayload = 43.28*self.Mpayload/600
+        self.platform_mass = 239 # shen = 230
+        self.payload_mass = payload_mass
+        self.M = self._payload_mass+self.platform_mass
+        self.Dc = CASTER_PIVOT_TO_PLATFORM_CENTER_Y_Dc  #0.294  # caster swivel center to robot center distance in y direction
+        self.Dd = DRIVE_WHEEL_TO_PLATFORM_CENTER_Y_Dd  #0.315  # drive wheel center to robot center distance in y direction
+        self._platform_z = PLATFORM_Z
+        self._platform_cg = [0, 0, (self._platform_z - 0.04) / 2 + 0.04]
+        self.JzRobot = 39.32*self.platform_mass/223
+        self.JzPayload = 43.28*self._payload_mass/600
         self.Jz = 85.3*self.M/823
         self.kr = 3.75
         self.kf = 1.63 # for MD 1.63
@@ -54,7 +59,7 @@ class MD(BaseModel):
 
     # Update max brake torque, default is 10 N/m
     def updateBrakeT(self, T):
-        if self.Mpayload == 900:
+        if self._payload_mass == 900:
             self.maxBrakeF = T * 12.57 / .08 # 12.57 is the gear box ratio, 0.08 is the wheel radius
         else:
             self.maxBrakeF = T * 12.57 / .1
