@@ -109,6 +109,7 @@ class BaseModel(ABC):
         self._velocity = velocity
         self.cornering(self.centripetal_acceleration)
         self.dir = 1 if self._velocity > 0 else -1
+        logger.debug(f'changed velocity to {self.velocity}, changed dir to {self.dir}, ac is {self.centripetal_acceleration}')
         # if self._velocity > 0:
         #     self.dir = 1
         # else:
@@ -163,6 +164,7 @@ class BaseModel(ABC):
         self._acceleration = axi
         if self._acceleration < self.brakeDecel:
             self.brakeDecel = self._acceleration
+        logger.debug(f'changed acceleration to, {self.acceleration}, brakedecel is {self.brakeDecel}')
 
     '''# not currently used
     def useAccel(self):
@@ -277,6 +279,23 @@ class BaseModel(ABC):
             self.maxDriveF = self.maxDriveDecelF
         return X[0] > 0 and X[2] > 0 and X[4] > 0 and X[7] > 0 and X[11] > 0 and X[13] > 0 and \
             Ftf1 < self.u*X[4] and Ftf2 < self.u*X[7] and abs(X[6]) <= self.maxDriveF+0.1 and abs(X[9]) <= self.maxDriveF+0.1
+
+    def normal_drive_criterion_2(self, wheel_forces_dict):
+        # Fc1 and Fc2 are allocated based normal force on each drive wheel
+        Fc1 = wheel_forces_dict['Fc'] * wheel_forces_dict['Fdz1'] / (wheel_forces_dict['Fdz1'] + wheel_forces_dict['Fdz2'])
+        Fc2 = wheel_forces_dict['Fc'] * wheel_forces_dict['Fdz2'] / (wheel_forces_dict['Fdz1'] + wheel_forces_dict['Fdz2'])
+        # Vector sum of traction and centripetal force
+        Ftf1 = np.sqrt(Fc1**2 + wheel_forces_dict['Fdt1']**2)
+        Ftf2 = np.sqrt(Fc2**2 + wheel_forces_dict['Fdt2']**2)
+        if (self._velocity > 0 and self.centripetal_acceleration > 0) or (self._velocity < 0 or self.centripetal_acceleration < 0):
+            self.maxDriveF = self.maxDriveAccelF
+        else:
+            self.maxDriveF = self.maxDriveDecelF
+        return wheel_forces_dict['Frz1'] > 0 and wheel_forces_dict['Frz2'] > 0 \
+            and wheel_forces_dict['Fdz1'] > 0 and wheel_forces_dict['Fdz2'] > 0 \
+            and wheel_forces_dict['Ffz1'] > 0 and wheel_forces_dict['Ffz2'] > 0 \
+            and Ftf1 < self.u*wheel_forces_dict['Fdz1'] and Ftf2 < self.u*wheel_forces_dict['Fdz2'] \
+            and abs(wheel_forces_dict['Fdt1']) <= self.maxDriveF+0.1 and abs(wheel_forces_dict['Fdt2']) <= self.maxDriveF+0.1
 
     def normalDriveCriterion_print(self, X):
         Fc1 = X[10] * X[4] / (X[4] + X[7])
