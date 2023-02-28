@@ -1,6 +1,13 @@
 import numpy as np
-
+import logging
 from .BaseModel import BaseModel
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 # CONSTANTS
 # LD250 platform mass [kg]
@@ -52,6 +59,7 @@ class LD250(BaseModel):
         # self.JzPayload = 43.28*self.payload_mass/600 # not needed, handled in decorator
         # self.Jz = 85.3*self._total_mass/823  # not needed, handled in decorator
         self._g = G
+        self.brakeDecel = -1.3 # defined as max
         self._caster_pivot_to_platform_center_y_Dc = CASTER_PIVOT_TO_PLATFORM_CENTER_Y_Dc
         self._drive_wheel_to_platform_center_y_Dd = DRIVE_WHEEL_TO_PLATFORM_CENTER_Y_Dd
         self._platform_z = PLATFORM_Z
@@ -70,11 +78,11 @@ class LD250(BaseModel):
         self.maxDriveAccelF = 1.25 * 30 / (0.2032 / 2) # single drive wheel
         self.maxDriveDecelF = self.maxDriveAccelF * 3 # because of the gear box, decel force is larger than the accel force under same motor current
 
-        self.velocity = 2.2
+        self._centripetal_acceleration = 0.0
+        self.velocity = 1.2
         self._acceleration = 0.8
-        self.centripetal_acceleration = 1
-        self.R = self.velocity**2/self.centripetal_acceleration # robot trajectory radius
-        self.w = self.velocity / self.R # robot angular velocity
+        # self.R = self.velocity**2/self._centripetal_acceleration # robot trajectory radius
+        # self.w = self.velocity / self.R # robot angular velocity
 
                 # caster angles, [rad]
         self._rear_right_caster_angle = 0 # Rear caster 1 angle during corning, Br1
@@ -85,11 +93,12 @@ class LD250(BaseModel):
         self.dir = 1
         self.theta = np.rad2deg(RAMP_ANGLE)
 
-        self.solve_caster_angle()
+        self.cornering()
+        # self.solve_caster_angle()  # not needed because cornering calls this function
 
     # xyh here is the overall CG
     def modelNoBrake(self, x,y,h):
-        if self.centripetal_acceleration != 0:
+        if self._centripetal_acceleration != 0:
             alphaz = self._acceleration/self.R
         else:
             alphaz = 0
@@ -109,14 +118,16 @@ class LD250(BaseModel):
                         [0,		    0,	    0,	    0,      1,	0,	0,	0,	0,	0,	0,	0,	0,	0,			0],
                         [0,			0,		0,		0,		0,	0,	0,	1,	0,	0,	0,	0,	0,	0,			0]])
         Y = np.array([[self._combined_mass*(self._acceleration*(self.R-y)/self.R - self.w**2*x) + self._combined_mass*self._g*np.sin(self.theta)], [self._combined_mass*(self.w**2*(self.R-y) + self._acceleration*x/self.R)], [self._combined_mass*self._g*np.cos(self.theta)],[0], [0], [self._combined_moment_of_inertia_Jz*alphaz],[0],[0],[0],[0],[0],[0],[0],[self.downForce],[self.downForce]])
+        # logger.debug(f'Mk:\n{Mk}\nY:\n{Y}')
         # [Frz1;Frf1;Frz2;Frf2;Fdz1;Fdf1;Fdt1;Fdz2;Fdf2;Fdt2;Fc;Ffz1;Fff1;Ffz2;Fff2];
         #     0;    1;  2;   3;   4;   5;   6;   7;   8;   9;10;  11;  12;  13;  14  
+        temp_return_value = np.linalg.solve(Mk, Y)
         return np.linalg.solve(Mk,Y)
 
     # xyh here is the overall CG
     def modelBrake(self, x,y,h):
         self.dynamicU()
-        if self.centripetal_acceleration != 0:
+        if self._centripetal_acceleration != 0:
             ux = 0.95
         else:
             ux = 1
