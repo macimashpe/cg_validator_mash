@@ -2,10 +2,11 @@ import logging
 from math import cos, sin
 from pathlib import Path
 import numpy as np
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, patches
 from mpl_toolkits import mplot3d
 import toml
 from model_matrix import Model_MD, Model_LD250
+from safety_zone_generator import zone_generator
 
 # configure logger for debug messages
 logger = logging.getLogger(__name__)
@@ -18,19 +19,19 @@ file_handler = logging.FileHandler(filename="matrix_log.log")
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-def main():
+def analyze_cg():
     # load cfg file with robot parameters
     cfg_file_path = Path(__file__).parent / 'data/cg_parameters_mash.toml'
     with open(cfg_file_path) as cfg_file:
         cfg_data = toml.load(cfg_file)
-        logger.debug(f'toml config loaded')
+        logger.debug(f'cg toml config loaded')
 
     # init robot object from model libraries
     payload_mass = cfg_data['payload']['mass']
-    robot = Model_LD250.LD250(payload_mass)
+    # robot = Model_LD250.LD250(payload_mass)
+    robot = Model_MD.MD(payload_mass)
     robot.payload_mass = payload_mass
     robot.centripetal_acceleration = 0
-    # robot = Model_MD.MD(payload_mass)
     robot_height = Model_MD.PLATFORM_Z
     '''robot.payload_cg = (0.05, 0, 0.048)
     # robot.velocity, robot.acceleration = velocity_acceleration_combos[2]
@@ -55,18 +56,22 @@ def main():
     # for attr in dir(robot):
     #     print(f'{attr}: {getattr(robot, attr)}')
     '''
-    # pass
 
     # test all possible payload cg locations
     logger.debug(f'calculating cg validity')
-    stable_cgs_0 = []
-    stable_cgs_1 = []
-    stable_cgs_2 = []
-    stable_cgs_3 = []
-    stable_cgs_4 = []
-    stable_cgs_5 = []
-    stable_cgs_6 = []
-    stable_cgs_7 = []
+
+    # test single point for weird saddle shape del when done
+    robot.velocity, robot.acceleration = (-2.2, -0.5)
+    # for temp_z in (0.001, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1):
+    for temp_z in (0.05, 0.06):
+        # temp_x, temp_y = (0.0861, -0.0784)
+        # temp_x, temp_y = (0.1, 0.05)
+        temp_x, temp_y = (0.025, 0.025)
+        robot.payload_cg = (temp_x, temp_y, temp_z)  # 0.086
+        wheel_forces_dict = robot.model_brake_2(*robot._combined_cg)
+        valid = robot.normal_drive_criterion_2(wheel_forces_dict)
+        logger.debug(f'temp z = {temp_z} | valid = {valid}')
+        logger.debug(f'{wheel_forces_dict}')
 
     cg_range_step = cfg_data['misc']['cg_range_step']
     cg_boundary_x = cfg_data['misc']['cg_range_x']
@@ -243,6 +248,7 @@ def main():
             Z_AND_0_3[xi,yi] = min([temp_high_z_0, temp_high_z_1, temp_high_z_2, temp_high_z_3])
             Z_AND_0_7[xi,yi] = min([temp_high_z_0, temp_high_z_1, temp_high_z_2, temp_high_z_3, temp_high_z_4, temp_high_z_5, temp_high_z_6, temp_high_z_7])
 
+    logger.debug(f'{(X[9][12], Y[9][12], Z_5[9][12])}')
     logger.debug(f'plotting')
     # fig = plt.figure()
     # ax = plt.axes(projection='3d')
@@ -299,12 +305,58 @@ def main():
     ax2[1].set_xlabel('x')
     ax2[1].set_ylabel('y')
     ax2[1].set_zlabel('z')
+
+    # add safety zones to plot. currently a temp way to do it.
+    z_line = np.ones(2) * 0
+    y_line = (-cfg_data['misc']['cg_range_y'], cfg_data['misc']['cg_range_y'])
+    # load safety zone cfg file with robot parameters
+    cfg_file_path = Path(__file__).parent / 'data/zone_parameters_mash.toml'
+    with open(cfg_file_path) as cfg_file:
+        sz_cfg_data = toml.load(cfg_file)
+        logger.debug(f'safety zones toml cfg loaded: {str(cfg_file_path)}')
+    logger.debug(f'Calculating LD safety zones...')
+    # calculate LD straight zone lengths using v0, vf, a to find displacement
+    ld_safety_zones = zone_generator.zone_creation_ld(
+        # cfg_data['payload']['max_translational_deceleration'],
+        Model_LD250.MAX_ACCELERATION_axa*1000,
+        sz_cfg_data['payload']['max_velocity'],
+        sz_cfg_data['payload']['cnt_subdivisions'],
+        sz_cfg_data['payload']['straight_zone_safety_factor'],
+        sz_cfg_data['payload']['extension'],
+        sz_cfg_data['LD']['dimensions'])
+    for zone_x in ld_safety_zones:
+        ax2[1].plot((zone_x[1]/1000, zone_x[1]/1000), y_line, z_line)
     plt.show()
-    pass
 
     # with open('stable_cg_locations', 'w') as outfile:
     #     for stable_cg in stable_cgs:
     #         outfile.write(f'{str(stable_cg)}\n')
+
+def analyze_safety_zones():
+    # load cfg file with robot parameters
+    cfg_file_path = Path(__file__).parent / 'data/zone_parameters_mash.toml'
+    with open(cfg_file_path) as cfg_file:
+        cfg_data = toml.load(cfg_file)
+        logger.debug(f'safety zones toml cfg loaded: {str(cfg_file_path)}')
+
+    if cfg_data['platform']['type'] == "LD":
+        logger.debug(f'Calculating LD safety zones...')
+        # calculate LD straight zone lengths using v0, vf, a to find displacement
+        ld_safety_zones = zone_generator.zone_creation_ld(
+            # cfg_data['payload']['max_translational_deceleration'],
+            Model_LD250.MAX_ACCELERATION_axa,
+            cfg_data['payload']['max_velocity'],
+            cfg_data['payload']['cnt_subdivisions'],
+            cfg_data['payload']['straight_zone_safety_factor'],
+            cfg_data['payload']['extension'],
+            cfg_data['LD']['dimensions'])
+
+        zone_generator.plot_ld_safety_zones(ld_safety_zones)
+        pass
+
+def main():
+    analyze_cg()
+    analyze_safety_zones()
 
 if __name__ == "__main__":
     main()

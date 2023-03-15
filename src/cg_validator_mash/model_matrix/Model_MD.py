@@ -10,6 +10,8 @@ REAR_ROCKER_PIVOT_PIN_HEIGHT_h2 = 0.11
 CASTER_PIVOT_TO_PLATFORM_CENTER_Y_Dc = 0.292875
 DRIVE_WHEEL_TO_PLATFORM_CENTER_Y_Dd = 0.3189
 PLATFORM_Z = 0.320
+MAX_ACCELERATION_axa = 0.5
+MAX_DECELERATION_axd = -1.3
 
 class MD(BaseModel):
     def __init__(self, payload_mass=650):
@@ -25,9 +27,9 @@ class MD(BaseModel):
         self.l2 = self.L * (1-self.k)
         self.h1 = PIVOT_PIN_HEIGHT_h1   # rear rocker pivot pin height from the ground
         self.h2 = REAR_ROCKER_PIVOT_PIN_HEIGHT_h2  #  pivot pin height from the ground
-        self.axa = 0.5  # acceleration in m/s^2
+        self.axa = MAX_ACCELERATION_axa  # acceleration in m/s^2
+        self.axd = MAX_DECELERATION_axd  # deceleration in m/s^2
         self.ax = self.axa
-        self.axd = -1.3  # deceleration in m/s^2
         self._centripetal_acceleration = 0.5  # centripetal accel
         self.R = self._velocity ** 2 / self._centripetal_acceleration  # robot trajactory radius
         self.w = self._velocity / self.R  # robot angular velocity
@@ -133,6 +135,22 @@ class MD(BaseModel):
             #print("modelBrake: brake is unlocked (slipping brake plate)!")
         return X
 
+    # will run brake locked model first under static friction coefficient. This will produce max decel and it's the worst case.
+    # If brake locked passed, the robot will slide, change the friction coefficient to a smaller value and check the locked model again
+    #   if static friction works, then dynamic friction will work too.
+    # If brake locked failed, check un-locked model. This one will produce smaller decel (loose the condition)
+    def model_brake_2(self, x, y, h):
+        # [Frz1 ; Frf1; Frz2; Frf2; Fdz1; Fdf1; Fdt1; Fdz2; Fdf2; Fdt2; Fc; Ffz1; Fff1; Ffz2; Fff2; ax; ay; alphaZ]
+        if self.brake_drive_criterion_2(self.modelBrake_lock(x, y, h)):
+            self.dynamicU()
+            wheel_forces_dict = self.model_brake_lock_2(x, y, h)
+            self.staticU()
+            #print("modelBrake: brake is locked (slipping drivewheel)!")
+        else:
+            wheel_forces_dict = self.model_brake_unlock_2(x, y, h)
+            #print("modelBrake: brake is unlocked (slipping brake plate)!")
+        return wheel_forces_dict
+
     # xyh here is the overall CG
     # Assuming brake torque is large enough, the robot will slide
     def modelBrake_lock(self, x,y,h):
@@ -167,6 +185,44 @@ class MD(BaseModel):
             print('Singular Matrix at: ' + str(x) + ', ' + str(y) + ', ' + str(h))
             Y[0] = -100
             return Y # return an array that will fail in criterion check
+
+    # xyh here is the overall CG
+    # Assuming brake torque is large enough, the robot will slide
+    def model_brake_lock_2(self, x,y,h):
+        if self._centripetal_acceleration != 0:
+            ux = 0.95
+        else:
+            ux = 1
+        Mk = np.array( [[0,	-np.cos(self._rear_right_caster_angle),	0,	-np.cos(self._rear_left_caster_angle),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self._front_right_caster_angle),	0,	-np.cos(self._front_left_caster_angle), -self.M, 0, 0],
+                        [0,		np.sin(self._rear_right_caster_angle),	0,	np.sin(self._rear_left_caster_angle),	0,	0,	0,	0,	0,	0,	1,	0,	-np.sin(self._front_right_caster_angle),	0, 	-np.sin(self._front_left_caster_angle), 0, -self.M, 0],
+                        [1,		0,	   1,	0,	  1,	0,	0,	1,	0,	0,	0,	1,	0,	  1,		0, 0, 0, 0],
+                        [-(self.Dc-self.r*np.sin(self._rear_right_caster_angle)+y),	np.sin(self._rear_right_caster_angle)*h,		self.Dc+self.r*np.sin(self._rear_left_caster_angle)-y,	np.sin(self._rear_left_caster_angle)*h,		-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	h,	-(self.Dc+self.r*np.sin(self._front_right_caster_angle)+y),	-np.sin(self._front_right_caster_angle)*h,		self.Dc-np.sin(self._front_left_caster_angle)*self.r-y,		-np.sin(self._front_left_caster_angle)*h, 0, 0, 0],
+                        [self.L+self.r*np.cos(self._rear_right_caster_angle)+x,	np.cos(self._rear_right_caster_angle)*h,		self.L+self.r*np.cos(self._rear_left_caster_angle)+x,	np.cos(self._rear_left_caster_angle)*h,		x,	h,	-h,	x,	h,	-h,	0,	-(self.L-self.r*np.cos(self._front_right_caster_angle)-x),	np.cos(self._front_right_caster_angle)*h,		-(self.L-self.r*np.cos(self._front_left_caster_angle)-x),	np.cos(self._front_left_caster_angle)*h, 0, 0, 0],
+                        [0,		-np.cos(self._rear_right_caster_angle)*(self.Dc-self.r*np.sin(self._rear_right_caster_angle)+y)-np.sin(self._rear_right_caster_angle)*(self.L+np.cos(self._rear_right_caster_angle)*self.r+x),	0,	np.cos(self._rear_left_caster_angle)*(self.Dc+self.r*np.sin(self._rear_left_caster_angle)-y)-np.sin(self._rear_left_caster_angle)*(self.L+np.cos(self._rear_left_caster_angle)*self.r+x),	0,	-(self.Dd+y),	self.Dd+y,	0,	self.Dd-y,	-(self.Dd-y),	-x,	0,	-np.cos(self._front_right_caster_angle)*(self.Dc+self.r*np.sin(self._front_right_caster_angle)+y)-np.sin(self._front_right_caster_angle)*(self.L-np.cos(self._front_right_caster_angle)*self.r-x),	0,	np.cos(self._front_left_caster_angle)*(self.Dc-self.r*np.sin(self._front_left_caster_angle)-y)-np.sin(self._front_left_caster_angle)*(self.L-np.cos(self._front_left_caster_angle)*self.r-x),0,	0, -self.Jz],
+                        [0,		0,	0,		0,		self.l1,	self.h1,	-self.h1,	0,	0,	0,	0,	-(self.l2-self.r*np.cos(self._front_right_caster_angle)),	np.cos(self._front_right_caster_angle)*self.h1,		0,		0, 0, 0, 0],
+                        [0,		0,		0,		0,		0,	0,	0,	self.l1,	self.h1,	-self.h1,	0,	0,	0,	-(self.l2-self.r*np.cos(self._front_left_caster_angle)),	np.cos(self._front_left_caster_angle)*self.h1, 0, 0, 0],
+                        [-(self.Dc-self.r*np.sin(self._rear_right_caster_angle)),	np.sin(self._rear_right_caster_angle)*self.h2,		self.Dc+self.r*np.sin(self._rear_left_caster_angle),	np.sin(self._rear_left_caster_angle)*self.h2,		0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [-self.urc,		1,		0,		0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [0,			0,		-self.urc,	1,	    0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [0,			0,		0,		0,		-self.urd,	1*self.dir,	    0,	0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [0,			0,		0,		0,		0,	0,	0,	 -self.urd,	1*self.dir,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [0,			0,		0,		0,		0,	0,	0,	    0,	0,	0,	0,	-self.urc,	1,	0,	0, 0, 0, 0],
+                        [0,			0,		0,		0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	-self.urc,	1, 0, 0, 0],
+                        [0,			0,		0,		0,	 ux*self.u,	0,	1*self.dir,	    0,	0,	0,	0,	0,	0,	0,		0, 0, 0, 0],
+                        [0,			0,		0,		0,		0,	0,	0,   ux*self.u,	0,	1*self.dir,	0,	0,	0,	0,		0, 0, 0, 0],
+                        [0,		    0,		0,	    0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,		0, 0, 1,-x]])
+        Y = np.array([[self.M*self.g*np.sin(self.theta)], [0], [self.M*self.g*np.cos(self.theta)],[0], [0], [0], [0], [0],[0],[0],[0],[0],[0],[0],[0],[0],[0],[self.w**2*(self.R-y)]])
+        # [Frz1;Frf1;Frz2;Frf2;Fdz1;Fdf1;Fdt1;Fdz2;Fdf2;Fdt2;Fc;Ffz1;Fff1;Ffz2;Fff2;aCGx;aCGy;alphaZ];
+        #     0;   1;  2;   3;   4;   5;   6;   7;   8;   9;10;  11;  12;  13;  14;  15;  16;    17  
+        keys = ['Frz1', 'Frf1', 'Frz2', 'Frf2', 'Fdz1', 'Fdf1', 'Fdt1', 'Fdz2', 'Fdf2', 'Fdt2', 'Fc', 'Ffz1', 'Fff1', 'Ffz2', 'Fff2', 'aCGx', 'aCGy', 'alphaZ']
+        try:
+            wheel_forces = np.linalg.solve(Mk,Y)
+        except:
+            print('Singular Matrix at: ' + str(x) + ', ' + str(y) + ', ' + str(h))
+            # return an array that will fail in criterion check
+            wheel_forces = [-100] + Y[1:]
+        wheel_forces_dict = {key:value for (key, value) in zip(keys, wheel_forces)}
+        return wheel_forces_dict
     
     # xyh here is the overall CG
     # Assuming brake torque is not large enough, the brake will slide
@@ -198,4 +254,38 @@ class MD(BaseModel):
             print('Singular Matrix at: ' + str(x) + ', ' + str(y) + ', ' + str(h))
             Y[0] = -100
             return Y # return an array that will fail in criterion check        
-                
+
+    # xyh here is the overall CG
+    # Assuming brake torque is not large enough, the brake will slide
+    def model_brake_unlock_2(self, x, y, h):
+        Mk = np.array( [[0,	-np.cos(self._rear_right_caster_angle),	0,	-np.cos(self._rear_left_caster_angle),	0,	-1,	1,	0,	-1,	1,	0,	0,	-np.cos(self._front_right_caster_angle),	0,	-np.cos(self._front_left_caster_angle), -self.M, 0, 0],
+                        [0,		np.sin(self._rear_right_caster_angle),	0,	np.sin(self._rear_left_caster_angle),	0,	0,	0,	0,	0,	0,	1,	0,	-np.sin(self._front_right_caster_angle),	0, 	-np.sin(self._front_left_caster_angle), 0, -self.M, 0],
+                        [1,		0,	   1,	0,	  1,	0,	0,	1,	0,	0,	0,	1,	0,	  1,		0, 0, 0, 0],
+                        [-(self.Dc-self.r*np.sin(self._rear_right_caster_angle)+y),	np.sin(self._rear_right_caster_angle)*h,		self.Dc+self.r*np.sin(self._rear_left_caster_angle)-y,	np.sin(self._rear_left_caster_angle)*h,		-(self.Dd+y),	0,	0,	self.Dd-y,	0,	0,	h,	-(self.Dc+self.r*np.sin(self._front_right_caster_angle)+y),	-np.sin(self._front_right_caster_angle)*h,		self.Dc-np.sin(self._front_left_caster_angle)*self.r-y,		-np.sin(self._front_left_caster_angle)*h, 0, 0, 0],
+                        [self.L+self.r*np.cos(self._rear_right_caster_angle)+x,	np.cos(self._rear_right_caster_angle)*h,		self.L+self.r*np.cos(self._rear_left_caster_angle)+x,	np.cos(self._rear_left_caster_angle)*h,		x,	h,	-h,	x,	h,	-h,	0,	-(self.L-self.r*np.cos(self._front_right_caster_angle)-x),	np.cos(self._front_right_caster_angle)*h,		-(self.L-self.r*np.cos(self._front_left_caster_angle)-x),	np.cos(self._front_left_caster_angle)*h, 0, 0, 0],
+                        [0,		-np.cos(self._rear_right_caster_angle)*(self.Dc-self.r*np.sin(self._rear_right_caster_angle)+y)-np.sin(self._rear_right_caster_angle)*(self.L+np.cos(self._rear_right_caster_angle)*self.r+x),	0,	np.cos(self._rear_left_caster_angle)*(self.Dc+self.r*np.sin(self._rear_left_caster_angle)-y)-np.sin(self._rear_left_caster_angle)*(self.L+np.cos(self._rear_left_caster_angle)*self.r+x),	0,	-(self.Dd+y),	self.Dd+y,	0,	self.Dd-y,	-(self.Dd-y),	-x,	0,	-np.cos(self._front_right_caster_angle)*(self.Dc+self.r*np.sin(self._front_right_caster_angle)+y)-np.sin(self._front_right_caster_angle)*(self.L-np.cos(self._front_right_caster_angle)*self.r-x),	0,	np.cos(self._front_left_caster_angle)*(self.Dc-self.r*np.sin(self._front_left_caster_angle)-y)-np.sin(self._front_left_caster_angle)*(self.L-np.cos(self._front_left_caster_angle)*self.r-x),0,	0, -self.Jz],
+                        [0,		0,	0,		0,		self.l1,	self.h1,	-self.h1,	0,	0,	0,	0,	-(self.l2-self.r*np.cos(self._front_right_caster_angle)),	np.cos(self._front_right_caster_angle)*self.h1,		0,		0, 0, 0, 0],
+                        [0,		0,		0,		0,		0,	0,	0,	self.l1,	self.h1,	-self.h1,	0,	0,	0,	-(self.l2-self.r*np.cos(self._front_left_caster_angle)),	np.cos(self._front_left_caster_angle)*self.h1, 0, 0, 0],
+                        [-(self.Dc-self.r*np.sin(self._rear_right_caster_angle)),	np.sin(self._rear_right_caster_angle)*self.h2,		self.Dc+self.r*np.sin(self._rear_left_caster_angle),	np.sin(self._rear_left_caster_angle)*self.h2,		0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [-self.urc,		1,		0,		0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [0,			0,		-self.urc,	1,	    0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [0,			0,		0,		0,		-self.urd,	1*self.dir,	    0,	0,	0,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [0,			0,		0,		0,		0,	0,	0,	 -self.urd,	1*self.dir,	0,	0,	0,	0,	0,	0, 0, 0, 0],
+                        [0,			0,		0,		0,		0,	0,	0,	    0,	0,	0,	0,	-self.urc,	1,	0,	0, 0, 0, 0],
+                        [0,			0,		0,		0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	-self.urc,	1, 0, 0, 0],
+                        [0,			0,		0,		0,	    0,	0,	1*self.dir,	    0,	0,	0,	0,	0,	0,	0,		0, 0, 0, 0],
+                        [0,			0,		0,		0,		0,	0,	0,   0,	0,	1*self.dir,	0,	0,	0,	0,		0, 0, 0, 0],
+                        [0,		    0,		0,	    0,		0,	0,	0,	    0,	0,	0,	0,	0,	0,	0,		0, 0, 1,-x]])
+        Y = np.array([[self.M*self.g*np.sin(self.theta)], [0], [self.M*self.g*np.cos(self.theta)],[0], [0], [0], [0], [0],[0],[0],[0],[0],[0],[0],[0],[-self.maxBrakeF],[-self.maxBrakeF],[self.w**2*(self.R-y)]])
+        # [Frz1;Frf1;Frz2;Frf2;Fdz1;Fdf1;Fdt1;Fdz2;Fdf2;Fdt2;Fc;Ffz1;Fff1;Ffz2;Fff2;aCGx;aCGy;alphaZ];
+        #     0;   1;  2;   3;   4;   5;   6;   7;   8;   9;10;  11;  12;  13;  14;  15;  16;    17  
+        keys = ['Frz1', 'Frf1', 'Frz2', 'Frf2', 'Fdz1', 'Fdf1', 'Fdt1', 'Fdz2', 'Fdf2', 'Fdt2', 'Fc', 'Ffz1', 'Fff1', 'Ffz2', 'Fff2', 'aCGx', 'aCGy', 'alphaZ']
+        try:
+            wheel_forces = np.linalg.solve(Mk,Y)
+        except:
+            print('Singular Matrix at: ' + str(x) + ', ' + str(y) + ', ' + str(h))
+            # return an array that will fail in criterion check        
+            wheel_forces = [-100] + Y[1:]
+        wheel_forces_dict = {key:value for (key, value) in zip(keys, wheel_forces)}
+        return wheel_forces_dict
+        

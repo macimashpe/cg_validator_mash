@@ -38,6 +38,10 @@ RAMP_ANGLE = 0
 STATIC_FRICTION_COEFFICIENT = 0.76
 # Dynamic friction coefficient
 DYNAMIC_FRICTION_COEFFICIENT = 0.63
+# Maximum acceleration, value taken from original LD250 safety zones script
+MAX_ACCELERATION_axa = 0.8
+# Maximum deceleration, value taken from MD code
+MAX_DECELERATION_axd = -1.3
 
 # fixed drive wheel down force and no rockers
 class LD250(BaseModel):
@@ -50,7 +54,7 @@ class LD250(BaseModel):
         #don't believe these are used in LD250
         # self.l1 = self.L * self.k
         # self.l2 = self.L * (1-self.k)
-        # self.h2 = 0.1 
+        # self.h2 = 0.1
         # self.h1 = 0.05
         self._platform_mass = PLATFORM_MASS
         self.payload_mass = payload_mass
@@ -80,7 +84,7 @@ class LD250(BaseModel):
 
         self._centripetal_acceleration = 0.0
         self.velocity = 1.2
-        self._acceleration = 0.8
+        self._acceleration = MAX_ACCELERATION_axa
         # self.R = self.velocity**2/self._centripetal_acceleration # robot trajectory radius
         # self.w = self.velocity / self.R # robot angular velocity
 
