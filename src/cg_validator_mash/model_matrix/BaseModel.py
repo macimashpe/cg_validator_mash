@@ -337,6 +337,9 @@ class BaseModel(ABC):
     def brakeDriveCriterion(self, X):
         return X[0] > 0 and X[2] > 0 and X[4] > 0 and X[7] > 0 and X[11] > 0 and X[13] > 0 and abs(X[15]) >= abs(self.brakeDecel) and abs(X[6]) <= self.maxBrakeF+0.1 and abs(X[9]) <= self.maxBrakeF+0.1
 
+    def brake_drive_criterion_2(self, X):
+        return X[0] > 0 and X[2] > 0 and X[4] > 0 and X[7] > 0 and X[11] > 0 and X[13] > 0 and abs(X[15]) >= abs(self.brakeDecel) and abs(X[6]) <= self.maxBrakeF+0.1 and abs(X[9]) <= self.maxBrakeF+0.1
+
     def brakeDriveCriterion_print(self, X):
         flag = True
         if not (X[0] > 0 and X[2] > 0 and X[4] > 0 and X[7] > 0 and X[11] > 0 and X[13] > 0):
