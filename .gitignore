@@ -10,3 +10,6 @@ src/cg_validator_mash/matrix_main.py
 src/cg_validator_mash/model_matrix/__pycache__/__init__.cpython-310.pyc
 src/cg_validator_mash/model_matrix/__pycache__/BaseModel.cpython-310.pyc
 src/cg_validator_mash/model_matrix/__pycache__/Model_LD250.cpython-310.pyc
+ANDED_valid_cgs.png
+safety_zones.csv
+vel_acc_combos.png
