@@ -10,10 +10,15 @@ REAR_ROCKER_PIVOT_PIN_HEIGHT_h2 = 0.11
 CASTER_PIVOT_TO_PLATFORM_CENTER_Y_Dc = 0.292875
 DRIVE_WHEEL_TO_PLATFORM_CENTER_Y_Dd = 0.3189
 PLATFORM_Z = 0.320
+# platform dimensions, (length [mm], width [mm], height [mm])
+PLATFORM_DIMENSIONS = {'length': 1000, 'width': 1000, 'height': 1000}
 MAX_ACCELERATION_axa = 0.5
 MAX_DECELERATION_axd = -1.3
 
 class MD(BaseModel):
+
+    platform_dimensions = PLATFORM_DIMENSIONS
+
     def __init__(self, payload_mass=650):
         BaseModel.__init__(self)
         self.name = 'MD'

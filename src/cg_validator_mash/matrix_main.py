@@ -248,7 +248,7 @@ def analyze_cg():
             Z_AND_0_3[xi,yi] = min([temp_high_z_0, temp_high_z_1, temp_high_z_2, temp_high_z_3])
             Z_AND_0_7[xi,yi] = min([temp_high_z_0, temp_high_z_1, temp_high_z_2, temp_high_z_3, temp_high_z_4, temp_high_z_5, temp_high_z_6, temp_high_z_7])
 
-    logger.debug(f'{(X[9][12], Y[9][12], Z_5[9][12])}')
+    # logger.debug(f'{(X[9][12], Y[9][12], Z_5[9][12])}')
     logger.debug(f'plotting')
     # fig = plt.figure()
     # ax = plt.axes(projection='3d')
@@ -309,21 +309,16 @@ def analyze_cg():
     # add safety zones to plot. currently a temp way to do it.
     z_line = np.ones(2) * 0
     y_line = (-cfg_data['misc']['cg_range_y'], cfg_data['misc']['cg_range_y'])
-    # load safety zone cfg file with robot parameters
-    cfg_file_path = Path(__file__).parent / 'data/zone_parameters_mash.toml'
-    with open(cfg_file_path) as cfg_file:
-        sz_cfg_data = toml.load(cfg_file)
-        logger.debug(f'safety zones toml cfg loaded: {str(cfg_file_path)}')
     logger.debug(f'Calculating LD safety zones...')
     # calculate LD straight zone lengths using v0, vf, a to find displacement
     ld_safety_zones = zone_generator.zone_creation_ld(
         # cfg_data['payload']['max_translational_deceleration'],
         Model_LD250.MAX_ACCELERATION_axa*1000,
-        sz_cfg_data['payload']['max_velocity'],
-        sz_cfg_data['payload']['cnt_subdivisions'],
-        sz_cfg_data['payload']['straight_zone_safety_factor'],
-        sz_cfg_data['payload']['extension'],
-        sz_cfg_data['LD']['dimensions'])
+        cfg_data['payload']['max_velocity'],
+        cfg_data['payload']['cnt_subdivisions'],
+        cfg_data['misc']['safety_factor'],
+        cfg_data['payload']['extension'],
+        robot.platform_dimensions)
     for zone_x in ld_safety_zones:
         ax2[1].plot((zone_x[1]/1000, zone_x[1]/1000), y_line, z_line)
     plt.show()
@@ -334,7 +329,7 @@ def analyze_cg():
 
 def analyze_safety_zones():
     # load cfg file with robot parameters
-    cfg_file_path = Path(__file__).parent / 'data/zone_parameters_mash.toml'
+    cfg_file_path = Path(__file__).parent / 'data/cg_parameters_mash.toml'
     with open(cfg_file_path) as cfg_file:
         cfg_data = toml.load(cfg_file)
         logger.debug(f'safety zones toml cfg loaded: {str(cfg_file_path)}')
@@ -355,8 +350,9 @@ def analyze_safety_zones():
         pass
 
 def main():
-    analyze_cg()
-    analyze_safety_zones()
+    valid_cgs = analyze_cg()
+    valid_szs = analyze_safety_zones()
+
 
 if __name__ == "__main__":
     main()

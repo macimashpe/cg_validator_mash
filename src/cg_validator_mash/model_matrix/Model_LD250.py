@@ -12,6 +12,8 @@ logger.addHandler(stream_handler)
 # CONSTANTS
 # LD250 platform mass [kg]
 PLATFORM_MASS = 146
+# LD250 platform dimensions (length [mm], width [mm], height [mm])
+PLATFORM_DIMENSIONS = {'length': 969, 'width': 721, 'height': 382}
 # default payload mass
 DEFAULT_PAYLOAD_MASS = 250
 # distance from center of drive wheel to front/rear caster pivot [m]
@@ -45,6 +47,9 @@ MAX_DECELERATION_axd = -1.3
 
 # fixed drive wheel down force and no rockers
 class LD250(BaseModel):
+
+    platform_dimensions = PLATFORM_DIMENSIONS
+
     def __init__(self, payload_mass=DEFAULT_PAYLOAD_MASS):
         # BaseModel.__init__(self)
         self.name = 'LD250'
