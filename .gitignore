@@ -13,3 +13,5 @@ src/cg_validator_mash/model_matrix/__pycache__/Model_LD250.cpython-310.pyc
 ANDED_valid_cgs.png
 safety_zones.csv
 vel_acc_combos.png
+output/*
+src/cg_validator_mash/model_matrix/__pycache__/*
