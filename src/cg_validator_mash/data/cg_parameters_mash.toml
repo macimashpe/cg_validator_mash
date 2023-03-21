@@ -31,7 +31,13 @@
 
 [misc]
 
+# will add safety zones to the 3d cg plot outputs if true
+"plot_safety_zones" = false
+
 "safety_factor" = 1.3
+
+# combinations of velocity and accelerations to use
+"velocity_acceleration_combos" = [[2.2, 0.5], [-2.2, -0.5], [2.2, -0.5], [-2.2, 0.5]]  
 
 # range of cg x, y, z, values to check. (taken from run_updated.py)
 "cg_range_x" = 0.5

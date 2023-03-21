@@ -10,7 +10,6 @@ from safety_zone_generator import zone_generator
 import sys
 
 CFG_FILE_PATH = Path(__file__).parent / 'data/cg_parameters_mash.toml'
-VELOCITY_ACCELERATION_COMBOS =((2.2, 0.5), (-2.2, -0.5), (2.2, -0.5), (-2.2, 0.5)) 
 
 # configure logger for debug messages
 logger = logging.getLogger(__name__)
@@ -78,6 +77,7 @@ def analyze_cg(robot, cfg_data):
     cg_range_y = np.arange(-cg_boundary_y, cg_boundary_y, cg_range_step)
     cg_boundary_z = cfg_data['misc']['cg_range_z']
     cg_range_z = np.arange(robot_height, robot_height + cg_boundary_z, cg_range_step)
+    velocity_acceleration_combos = cfg_data['misc']['velocity_acceleration_combos']
     
     X, Y = np.meshgrid(cg_range_x, cg_range_y)
     nrows, ncols = X.shape
@@ -172,35 +172,35 @@ def analyze_cg(robot, cfg_data):
                 robot.payload_cg = (X[xi,yi], Y[xi,yi], payload_cg_z)
                 
                 # vel/acc_0
-                robot.velocity, robot.acceleration = VELOCITY_ACCELERATION_COMBOS[0]
+                robot.velocity, robot.acceleration = velocity_acceleration_combos[0]
                 wheel_forces = robot.modelNoBrake(*robot._combined_cg)
                 valid = robot.normalDriveCriterion(wheel_forces)
                 if valid and payload_cg_z > temp_high_z_0:
                     temp_high_z_0 = payload_cg_z
 
                 # vel/acc_1
-                robot.velocity, robot.acceleration = VELOCITY_ACCELERATION_COMBOS[1]
+                robot.velocity, robot.acceleration = velocity_acceleration_combos[1]
                 wheel_forces = robot.modelNoBrake(*robot._combined_cg)
                 valid = robot.normalDriveCriterion(wheel_forces)
                 if valid and payload_cg_z > temp_high_z_1:
                     temp_high_z_1 = payload_cg_z
 
                 # vel/acc_2
-                robot.velocity, robot.acceleration = VELOCITY_ACCELERATION_COMBOS[2]
+                robot.velocity, robot.acceleration = velocity_acceleration_combos[2]
                 wheel_forces = robot.modelNoBrake(*robot._combined_cg)
                 valid = robot.normalDriveCriterion(wheel_forces)
                 if valid and payload_cg_z > temp_high_z_2:
                     temp_high_z_2 = payload_cg_z
 
                 # vel/acc_3
-                robot.velocity, robot.acceleration = VELOCITY_ACCELERATION_COMBOS[3]
+                robot.velocity, robot.acceleration = velocity_acceleration_combos[3]
                 wheel_forces = robot.modelNoBrake(*robot._combined_cg)
                 valid = robot.normalDriveCriterion(wheel_forces)
                 if valid and payload_cg_z > temp_high_z_3:
                     temp_high_z_3 = payload_cg_z
 
                 # vel/acc_4
-                robot.velocity, robot.acceleration = VELOCITY_ACCELERATION_COMBOS[0]
+                robot.velocity, robot.acceleration = velocity_acceleration_combos[0]
                 wheel_forces = robot.modelBrake(*robot._combined_cg)
                 # valid = robot.normalDriveCriterion_print(wheel_forces)
                 valid = robot.normalDriveCriterion(wheel_forces)
@@ -208,7 +208,7 @@ def analyze_cg(robot, cfg_data):
                     temp_high_z_4 = payload_cg_z
 
                 # vel/acc_5
-                robot.velocity, robot.acceleration = VELOCITY_ACCELERATION_COMBOS[1]
+                robot.velocity, robot.acceleration = velocity_acceleration_combos[1]
                 wheel_forces = robot.modelBrake(*robot._combined_cg)
                 # valid = robot.normalDriveCriterion_print(wheel_forces)
                 valid = robot.normalDriveCriterion(wheel_forces)
@@ -216,7 +216,7 @@ def analyze_cg(robot, cfg_data):
                     temp_high_z_5 = payload_cg_z
 
                 # vel/acc_6
-                robot.velocity, robot.acceleration = VELOCITY_ACCELERATION_COMBOS[2]
+                robot.velocity, robot.acceleration = velocity_acceleration_combos[2]
                 wheel_forces = robot.modelBrake(*robot._combined_cg)
                 # valid = robot.normalDriveCriterion_print(wheel_forces)
                 valid = robot.normalDriveCriterion(wheel_forces)
@@ -224,7 +224,7 @@ def analyze_cg(robot, cfg_data):
                     temp_high_z_6 = payload_cg_z
 
                 # vel/acc_7
-                robot.velocity, robot.acceleration = VELOCITY_ACCELERATION_COMBOS[3]
+                robot.velocity, robot.acceleration = velocity_acceleration_combos[3]
                 wheel_forces = robot.modelBrake(*robot._combined_cg)
                 # valid = robot.normalDriveCriterion_print(wheel_forces)
                 valid = robot.normalDriveCriterion(wheel_forces)
@@ -263,48 +263,50 @@ def analyze_safety_zones(robot, cfg_data):
     
     return safety_zones
 
-def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data):
-    logger.debug(f'plotting')
+def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data, plot_safety_zones):
+    logger.debug(f'plotting cgs')
+    velocity_acceleration_combos = cfg_data['misc']['velocity_acceleration_combos']
     plt.rcParams['figure.figsize'] = [20, 8]
 
+    # plot surfaces for each of the velocity/acceleration cases, as well as the combined ANDED plots
     (X, Y, Z_0, Z_1, Z_2, Z_3, Z_4, Z_5, Z_6, Z_7, Z_AND_0_3, Z_AND_0_7) = cg_z_values
     fig, ax = plt.subplots(2, 4, num='Individual velocity/acceleration cases', subplot_kw=dict(projection='3d'))
-    ax[0,0].title.set_text(f'vel/acc 0 {str(VELOCITY_ACCELERATION_COMBOS[0])}, modelnobrake')
+    ax[0,0].title.set_text(f'vel/acc 0 {str(velocity_acceleration_combos[0])}, modelnobrake')
     ax[0, 0].plot_surface(X, Y, Z_0, alpha=0.90, shade=True)
     ax[0, 0].set_xlabel('x')
     ax[0, 0].set_ylabel('y')
     ax[0, 0].set_zlabel('z')
-    ax[0,1].title.set_text(f'vel/acc 1 {str(VELOCITY_ACCELERATION_COMBOS[1])}, modelnobrake')
+    ax[0,1].title.set_text(f'vel/acc 1 {str(velocity_acceleration_combos[1])}, modelnobrake')
     ax[0, 1].plot_surface(X, Y, Z_1, alpha=0.90, shade=True)
     ax[0, 1].set_xlabel('x')
     ax[0, 1].set_ylabel('y')
     ax[0, 1].set_zlabel('z')
-    ax[0, 2].title.set_text(f'vel/acc 2 {str(VELOCITY_ACCELERATION_COMBOS[2])}, modelnobrake')
+    ax[0, 2].title.set_text(f'vel/acc 2 {str(velocity_acceleration_combos[2])}, modelnobrake')
     ax[0, 2].plot_surface(X, Y, Z_2, alpha=0.90, shade=True)
     ax[0, 2].set_xlabel('x')
     ax[0, 2].set_ylabel('y')
     ax[0, 2].set_zlabel('z')
-    ax[0, 3].title.set_text(f'vel/acc 3 {str(VELOCITY_ACCELERATION_COMBOS[3])}, modelnobrake')
+    ax[0, 3].title.set_text(f'vel/acc 3 {str(velocity_acceleration_combos[3])}, modelnobrake')
     ax[0, 3].plot_surface(X, Y, Z_3, alpha=0.90, shade=True)
     ax[0, 3].set_xlabel('x')
     ax[0, 3].set_ylabel('y')
     ax[0, 3].set_zlabel('z')
-    ax[1, 0].title.set_text(f'vel/acc 4 {str(VELOCITY_ACCELERATION_COMBOS[0])}, modelbrake')
+    ax[1, 0].title.set_text(f'vel/acc 4 {str(velocity_acceleration_combos[0])}, modelbrake')
     ax[1, 0].plot_surface(X, Y, Z_4, alpha=0.90, shade=True)
     ax[1, 0].set_xlabel('x')
     ax[1, 0].set_ylabel('y')
     ax[1, 0].set_zlabel('z')
-    ax[1, 1].title.set_text(f'vel/acc 5 {str(VELOCITY_ACCELERATION_COMBOS[1])}, modelbrake')
+    ax[1, 1].title.set_text(f'vel/acc 5 {str(velocity_acceleration_combos[1])}, modelbrake')
     ax[1, 1].plot_surface(X, Y, Z_5, alpha=0.90, shade=True)
     ax[1, 1].set_xlabel('x')
     ax[1, 1].set_ylabel('y')
     ax[1, 1].set_zlabel('z')
-    ax[1, 2].title.set_text(f'vel/acc 6 {str(VELOCITY_ACCELERATION_COMBOS[2])}, modelbrake')
+    ax[1, 2].title.set_text(f'vel/acc 6 {str(velocity_acceleration_combos[2])}, modelbrake')
     ax[1, 2].plot_surface(X, Y, Z_6, alpha=0.90, shade=True)
     ax[1, 2].set_xlabel('x')
     ax[1, 2].set_ylabel('y')
     ax[1, 2].set_zlabel('z')
-    ax[1, 3].title.set_text(f'vel/acc 7 {str(VELOCITY_ACCELERATION_COMBOS[3])}, modelbrake')
+    ax[1, 3].title.set_text(f'vel/acc 7 {str(velocity_acceleration_combos[3])}, modelbrake')
     ax[1, 3].plot_surface(X, Y, Z_7, alpha=0.90, shade=True)
     ax[1, 3].set_xlabel('x')
     ax[1, 3].set_ylabel('y')
@@ -324,15 +326,17 @@ def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data):
     ax2[1].set_xlabel('x')
     ax2[1].set_ylabel('y')
     ax2[1].set_zlabel('z')
-    # add safety zone lines to plot
-    z_line = np.ones(2) * 0
-    y_line = (-cfg_data['misc']['cg_range_y'], cfg_data['misc']['cg_range_y'])
-    for zone_x in safety_zone_values:
-        ax2[1].plot((zone_x[1]/1000, zone_x[1]/1000), y_line, z_line)
-    plt.savefig('ANDED_valid_cgs.png')
 
+    # add safety zone lines to plot
+    if plot_safety_zones:
+        z_line = np.ones(2) * 0
+        y_line = (-cfg_data['misc']['cg_range_y'], cfg_data['misc']['cg_range_y'])
+        for zone_x in safety_zone_values:
+            ax2[0].plot((zone_x[1]/1000, zone_x[1]/1000), y_line, z_line)
+            ax2[1].plot((zone_x[1]/1000, zone_x[1]/1000), y_line, z_line)
+
+    plt.savefig('ANDED_valid_cgs.png')
     plt.show()
-    pass
 
 def main():
     # load config file
@@ -352,8 +356,12 @@ def main():
 
 
     valid_cg_z_vals = analyze_cg(robot, cfg_data)
-    valid_szs = analyze_safety_zones(robot, cfg_data)
-    plot_cg_sz(valid_cg_z_vals, valid_szs, cfg_data)
+    if platform_type == 'LD':
+        valid_szs = analyze_safety_zones(robot, cfg_data)
+    else:
+        logger.debug(f'Warning: not calculating safety zones for {platform_type} - simple model only used for LD.')
+    plot_safety_zones = cfg_data['misc']['plot_safety_zones']
+    plot_cg_sz(valid_cg_z_vals, valid_szs, cfg_data, plot_safety_zones)
 
 
 if __name__ == "__main__":
