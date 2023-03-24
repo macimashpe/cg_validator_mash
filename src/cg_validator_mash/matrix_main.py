@@ -208,7 +208,7 @@ def analyze_ld_safety_zones(robot, cfg_data):
     return safety_zones
 
 
-def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data, plot_safety_zones=True):
+def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data):
     """Plot 3D values provided by previous analysis.
 
     Parameters:
@@ -293,26 +293,24 @@ def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data, plot_safety_zones=True
     fig2, ax2 = plt.subplots(
         1, 2, num="Overall ANDed valid CGs", subplot_kw=dict(projection="3d")
     )
-    ax2[0].title.set_text(f"vel/acc AND, [0..3], modelnobrake")
-    ax2[0].plot_surface(X, Y, Z_AND_0_3, alpha=0.90, shade=True)
+    ax2[0].title.set_text(f"vel/acc AND, modelnobrake, no safety zones")
+    ax2[0].plot_surface(X, Y, Z_AND_0_7, alpha=0.90, shade=True)
     ax2[0].set_xlabel("x")
     ax2[0].set_ylabel("y")
     ax2[0].set_zlabel("z")
-    ax2[1].title.set_text(f"vel/acc AND, [0..7], modelbrake")
+    ax2[1].title.set_text(f"vel/acc AND, modelbrake, safety zones")
     ax2[1].plot_surface(X, Y, Z_AND_0_7, alpha=0.90, shade=True)
     ax2[1].set_xlabel("x")
     ax2[1].set_ylabel("y")
     ax2[1].set_zlabel("z")
 
     # add safety zone lines to plot
-    if plot_safety_zones:
-        z_line = np.ones(2) * 0
-        y_line = (-cfg_data["misc"]["cg_range_y"], cfg_data["misc"]["cg_range_y"])
-        for zone_x in safety_zone_values:
-            ax2[0].plot((zone_x[1] / 1000, zone_x[1] / 1000), y_line, z_line)
-            ax2[1].plot((zone_x[1] / 1000, zone_x[1] / 1000), y_line, z_line)
-
+    z_line = np.ones(2) * 0
+    y_line = (-cfg_data["misc"]["cg_range_y"], cfg_data["misc"]["cg_range_y"])
+    for zone_x in safety_zone_values:
+        ax2[1].plot((zone_x[1] / 1000, zone_x[1] / 1000), y_line, z_line)
     plt.savefig("ANDED_valid_cgs.png")
+
     plt.show()
 
 
@@ -352,8 +350,7 @@ def main():
         )
 
     # plot cg and sz data in 3D plots
-    plot_safety_zones = cfg_data["misc"]["plot_safety_zones"]
-    plot_cg_sz(valid_cg_z_vals, valid_szs, cfg_data, plot_safety_zones)
+    plot_cg_sz(valid_cg_z_vals, valid_szs, cfg_data)
 
 
 if __name__ == "__main__":
