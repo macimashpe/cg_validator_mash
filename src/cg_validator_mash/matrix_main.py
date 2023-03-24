@@ -293,7 +293,7 @@ def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data):
     fig2, ax2 = plt.subplots(
         1, 2, num="Overall ANDed valid CGs", subplot_kw=dict(projection="3d")
     )
-    ax2[0].title.set_text(f"vel/acc AND, modelnobrake, no safety zones")
+    ax2[0].title.set_text(f"vel/acc AND, modelbrake, no safety zones")
     ax2[0].plot_surface(X, Y, Z_AND_0_7, alpha=0.90, shade=True)
     ax2[0].set_xlabel("x")
     ax2[0].set_ylabel("y")
