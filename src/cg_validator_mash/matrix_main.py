@@ -1,3 +1,13 @@
+"""Analyze the valid center-of-gravity and safety-zone characteristics of LD/MD/HD.
+
+Dev: Maci Miri, maci@mashpe.net
+
+Info: Leverages a previous version of the cg analaysis library provided by 
+Shen from Omron. 
+The safety-zone analysis was implemented using 1-D kinematics 
+and needs real-world verification/tweaking.
+"""
+
 import logging
 from math import cos, sin
 from pathlib import Path
@@ -5,7 +15,7 @@ import numpy as np
 from matplotlib import pyplot as plt, patches
 from mpl_toolkits import mplot3d
 import toml
-from model_matrix import Model_MD, Model_LD250
+from model_matrix import BaseModel, Model_MD, Model_LD250
 from safety_zone_generator import zone_generator
 import sys
 
@@ -23,53 +33,26 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
-def analyze_cg(robot, cfg_data):
+def analyze_cg(robot: BaseModel, cfg_data: dict):
+    """Analyzes a volume above the robot platform and returns highest valid payload CGs.
+
+    Parameters:
+    robot (BaseModel): model with matrix representation
+    cfg_data (dict): settings loaded from config file
+
+    Returns:
+    tuple: array of highest valid CGs at every XY point above platform
+    """
+
     # init robot object from model libraries
     payload_mass = cfg_data["payload"]["mass"]
     robot.payload_mass = payload_mass
     robot.centripetal_acceleration = 0
     # TODO: fix m vs mm in cg vs sz libraries
     robot_height = robot.platform_dimensions["height"] / 1000
-    """robot.payload_cg = (0.05, 0, 0.048)
-    # robot.velocity, robot.acceleration = velocity_acceleration_combos[2]
-    robot.velocity, robot.acceleration = (2.2, 0.5)
-    # wheel_forces = robot.model_no_brake_2(*robot.payload_cg)
-    wheel_forces = robot.modelNoBrake(*robot._combined_cg)
-    valid = robot.normalDriveCriterion(wheel_forces)
-    if valid:
-        logger.debug(f'single point test | valid combined cg: x {robot._combined_cg[0]} y {robot._combined_cg[1]} z {robot._combined_cg[2]}')
-    else:
-        logger.debug(f'single point test | INVALID combined cg: x {robot._combined_cg[0]} y {robot._combined_cg[1]} z {robot._combined_cg[2]}')
-    # logger.debug(f'valid: {valid}, wheel forces: {wheel_forces}')
-    robot.velocity, robot.acceleration = (-2.2, -0.5)
-    # wheel_forces = robot.model_no_brake_2(*robot.payload_cg)
-    wheel_forces = robot.modelNoBrake(*robot._combined_cg)
-    valid = robot.normalDriveCriterion(wheel_forces)
-    if valid:
-        logger.debug(f'single point test | valid combined cg: x {robot._combined_cg[0]} y {robot._combined_cg[1]} z {robot._combined_cg[2]}')
-    else:
-        logger.debug(f'single point test | INVALID combined cg: x {robot._combined_cg[0]} y {robot._combined_cg[1]} z {robot._combined_cg[2]}')
-    # logger.debug(f'valid: {valid}, wheel forces: {wheel_forces}')
-    # for attr in dir(robot):
-    #     print(f'{attr}: {getattr(robot, attr)}')
-    """
 
     # test all possible payload cg locations
     logger.debug(f"calculating cg validity")
-
-    """# test single point for weird saddle shape del when done
-    robot.velocity, robot.acceleration = (-2.2, -0.5)
-    # for temp_z in (0.001, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1):
-    for temp_z in (0.05, 0.06):
-        # temp_x, temp_y = (0.0861, -0.0784)
-        # temp_x, temp_y = (0.1, 0.05)
-        temp_x, temp_y = (0.025, 0.025)
-        robot.payload_cg = (temp_x, temp_y, temp_z)  # 0.086
-        wheel_forces_dict = robot.model_brake_2(*robot._combined_cg)
-        valid = robot.normal_drive_criterion_2(wheel_forces_dict)
-        logger.debug(f'temp z = {temp_z} | valid = {valid}')
-        logger.debug(f'{wheel_forces_dict}')
-    """
 
     cg_range_step = cfg_data["misc"]["cg_range_step"]
     cg_boundary_x = cfg_data["misc"]["cg_range_x"]
@@ -92,71 +75,6 @@ def analyze_cg(robot, cfg_data):
     Z_7 = np.zeros(X.shape)
     Z_AND_0_3 = np.zeros(X.shape)
     Z_AND_0_7 = np.zeros(X.shape)
-
-    """# used when debugging a certain double loop for sanity
-    logger.debug(f'starting double loop search')
-    Z_temp_0 = np.zeros(X.shape)
-    Z_temp_1 = np.zeros(X.shape)
-    cg_list_0 = []
-    cg_list_1 = []
-    for xi in range(nrows):
-        for yi in range(ncols):
-            temp_high_z = 0
-            for zi, payload_cg_z in enumerate(cg_range_z):
-                robot.payload_cg = (X[xi,yi], Y[xi,yi], payload_cg_z)
-                # robot.payload_cg = (0.05, 0.0, 0.048)
-                # robot.velocity, robot.acceleration = velocity_acceleration_combos[2]
-                robot.velocity, robot.acceleration = (2.2, 0.5)
-                # wheel_forces = robot.model_no_brake_2(*robot.payload_cg)
-                wheel_forces = robot.modelNoBrake(*robot._combined_cg)
-                valid = robot.normalDriveCriterion(wheel_forces)
-                # logger.debug(f'valid: {valid}, wheel forces: {wheel_forces}')
-                if valid:
-                    cg_list_0.append(robot.payload_cg)
-                    logger.debug(f'VALID | payload cg x {robot.payload_cg[0]} y {robot.payload_cg[1]} z {robot.payload_cg[2]}, combined cg x {robot._combined_cg[0]} y {robot._combined_cg[1]} z {robot._combined_cg[2]}')
-                else:
-                    logger.debug(f'INVALID | payload cg x {robot.payload_cg[0]} y {robot.payload_cg[1]} z {robot.payload_cg[2]}, combined cg x {robot._combined_cg[0]} y {robot._combined_cg[1]} z {robot._combined_cg[2]}')
-                if valid and payload_cg_z > temp_high_z:
-                    temp_high_z = payload_cg_z
-            Z_temp_0[xi,yi] = temp_high_z
-
-    for xi in range(nrows):
-        for yi in range(ncols):
-            temp_high_z = 0
-            for zi, payload_cg_z in enumerate(cg_range_z):
-                robot.payload_cg = (X[xi,yi], Y[xi,yi], payload_cg_z)
-                # robot.payload_cg = (0.05, 0.0, 0.048)
-                # robot.velocity, robot.acceleration = velocity_acceleration_combos[2]
-                robot.velocity, robot.acceleration = (-2.2, -0.5)
-                wheel_forces = robot.modelNoBrake(*robot._combined_cg)
-                valid = robot.normalDriveCriterion(wheel_forces)
-                # logger.debug(f'valid: {valid}, wheel forces: {wheel_forces}')
-                if valid:
-                    cg_list_1.append(robot.payload_cg)
-                    logger.debug(f'VALID | payload cg x {robot.payload_cg[0]} y {robot.payload_cg[1]} z {robot.payload_cg[2]}, combined cg x {robot._combined_cg[0]} y {robot._combined_cg[1]} z {robot._combined_cg[2]}')
-                else:
-                    logger.debug(f'INVALID | payload cg x {robot.payload_cg[0]} y {robot.payload_cg[1]} z {robot.payload_cg[2]}, combined cg x {robot._combined_cg[0]} y {robot._combined_cg[1]} z {robot._combined_cg[2]}')
-                if valid and payload_cg_z > temp_high_z:
-                    temp_high_z = payload_cg_z
-            Z_temp_1[xi,yi] = temp_high_z
-
-    logger.debug(f'plotting')
-    # fig = plt.figure()
-    # ax = plt.axes(projection='3d')
-    cg_x_0 = [x_ for x_, y_, z_ in cg_list_0]
-    cg_y_0 = [y_ for x_, y_, z_ in cg_list_0]
-    cg_z_0 = [z_ for x_, y_, z_ in cg_list_0]
-    cg_x_1 = [x_ for x_, y_, z_ in cg_list_1]
-    cg_y_1 = [y_ for x_, y_, z_ in cg_list_1]
-    cg_z_1 = [z_ for x_, y_, z_ in cg_list_1]
-    fig, ax = plt.subplots(2, 2, subplot_kw=dict(projection='3d'))
-    ax[0,0].title.set_text(f'vel/acc Z_temp_0 2.2, 5\nmodelnobrake')
-    ax[0,0].plot_surface(X, Y, Z_temp_0)
-    ax[0,1].title.set_text(f'vel/acc Z_temp_0 -2.2, -5\nmodelnobrake')
-    ax[0,1].plot_surface(X, Y, Z_temp_1)
-    ax[1, 0].scatter(cg_x_0, cg_y_0, cg_z_0)
-    ax[1, 1].scatter(cg_x_1, cg_y_1, cg_z_1)
-    plt.show()"""
 
     # iterate through all possible payload cg locations and check for stability
     for xi in range(nrows):
@@ -259,7 +177,17 @@ def analyze_cg(robot, cfg_data):
     return (X, Y, Z_0, Z_1, Z_2, Z_3, Z_4, Z_5, Z_6, Z_7, Z_AND_0_3, Z_AND_0_7)
 
 
-def analyze_safety_zones(robot, cfg_data):
+def analyze_ld_safety_zones(robot, cfg_data):
+    """Analyze LD safety zones based on top speed and acceleration given by center of gravity analysis.
+
+    Parameters:
+    robot (BaseModel): model with matrix representation
+    cfg_data (dict): settings loaded from config file
+
+    Returns:
+    tuple: array of width and length of safety zones
+    """
+
     logger.debug(f"Calculating LD safety zones...")
     # calculate LD straight zone lengths using v0, vf, a to find displacement
     safety_zones = zone_generator.zone_creation_ld(
@@ -280,7 +208,16 @@ def analyze_safety_zones(robot, cfg_data):
     return safety_zones
 
 
-def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data, plot_safety_zones):
+def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data, plot_safety_zones=True):
+    """Plot 3D values provided by previous analysis.
+
+    Parameters:
+    cg_z_values (tuple): array of highest valid CGs at every XY point above platform
+    safety_zone_values (tuple): array of width and length of safety zones
+    cfg_data (dict): settings loaded from config file
+    plot_safety_zones (bool): if true, add the safety zone lines to the 3D plots.
+    """
+
     logger.debug(f"plotting cgs")
     velocity_acceleration_combos = cfg_data["misc"]["velocity_acceleration_combos"]
     plt.rcParams["figure.figsize"] = [20, 8]
@@ -380,11 +317,15 @@ def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data, plot_safety_zones):
 
 
 def main():
+    """Take in data from cfg and perform center-of-gravity and safety-zone analysis.
+    """
+
     # load config file
     with open(CFG_FILE_PATH) as cfg_file:
         cfg_data = toml.load(cfg_file)
         logger.debug(f"safety zones toml cfg loaded: {str(CFG_FILE_PATH)}")
 
+    # instantiate robot based on platform provided by cfg_data
     platform_type = cfg_data["platform"]["type"]
     match platform_type:
         case "LD":
@@ -399,13 +340,18 @@ def main():
                 f"Have not yet implemented {platform_type} platform type specified in cfg_file"
             )
 
+    # analyze center-of-gravity
     valid_cg_z_vals = analyze_cg(robot, cfg_data)
+
+    # analyze safety-zone (only if LD currently)
     if platform_type == "LD":
-        valid_szs = analyze_safety_zones(robot, cfg_data)
+        valid_szs = analyze_ld_safety_zones(robot, cfg_data)
     else:
         logger.debug(
             f"Warning: not calculating safety zones for {platform_type} - simple model only used for LD."
         )
+
+    # plot cg and sz data in 3D plots
     plot_safety_zones = cfg_data["misc"]["plot_safety_zones"]
     plot_cg_sz(valid_cg_z_vals, valid_szs, cfg_data, plot_safety_zones)
 
