@@ -275,14 +275,14 @@ def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data):
     ax[1, 2].title.set_text(
         f"vel/acc 6 {str(velocity_acceleration_combos[2])}, modelbrake"
     )
-    ax[1, 2].plot_surface(X, Y, Z_6, alpha=0.90, shade=True)
+    ax[1, 2].plot_surface(X, Y, Z_6, alpha=0.70, shade=True)
     ax[1, 2].set_xlabel("x")
     ax[1, 2].set_ylabel("y")
     ax[1, 2].set_zlabel("z")
     ax[1, 3].title.set_text(
         f"vel/acc 7 {str(velocity_acceleration_combos[3])}, modelbrake"
     )
-    ax[1, 3].plot_surface(X, Y, Z_7, alpha=0.90, shade=True)
+    ax[1, 3].plot_surface(X, Y, Z_7, alpha=0.70, shade=True)
     ax[1, 3].set_xlabel("x")
     ax[1, 3].set_ylabel("y")
     ax[1, 3].set_zlabel("z")
@@ -294,12 +294,12 @@ def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data):
         1, 2, num="Overall ANDed valid CGs", subplot_kw=dict(projection="3d")
     )
     ax2[0].title.set_text(f"vel/acc AND, modelbrake, no safety zones")
-    ax2[0].plot_surface(X, Y, Z_AND_0_7, alpha=0.90, shade=True)
+    ax2[0].plot_surface(X, Y, Z_AND_0_7, alpha=0.70)
     ax2[0].set_xlabel("x")
     ax2[0].set_ylabel("y")
     ax2[0].set_zlabel("z")
     ax2[1].title.set_text(f"vel/acc AND, modelbrake, safety zones")
-    ax2[1].plot_surface(X, Y, Z_AND_0_7, alpha=0.90, shade=True)
+    ax2[1].plot_surface(X, Y, Z_AND_0_7, alpha=0.70, shade=True)
     ax2[1].set_xlabel("x")
     ax2[1].set_ylabel("y")
     ax2[1].set_zlabel("z")
@@ -309,6 +309,13 @@ def plot_cg_sz(cg_z_values, safety_zone_values, cfg_data):
     y_line = (-cfg_data["misc"]["cg_range_y"], cfg_data["misc"]["cg_range_y"])
     for zone_x in safety_zone_values:
         ax2[1].plot((zone_x[1] / 1000, zone_x[1] / 1000), y_line, z_line)
+
+    # add current payload cg (from cfg_data) to left AND plot
+    current_payload_cg_x_m = [cfg_data["payload"]["cg"]["x"] / 1000]
+    current_payload_cg_y_m = [cfg_data["payload"]["cg"]["y"] / 1000]
+    current_payload_cg_z_m = [cfg_data["payload"]["cg"]["z"] / 1000]
+    ax2[0].scatter(current_payload_cg_x_m, current_payload_cg_y_m, current_payload_cg_z_m, color="r", alpha=.99)
+
     plt.savefig("ANDED_valid_cgs.png")
 
     plt.show()
